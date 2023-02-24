@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "215035424615",
+    "project_id": "influancer-thinkalize",
+    "storage_bucket": "influancer-thinkalize.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215035424615:android:2dc4e274a85686c78c89c2",
+        "android_client_info": {
+          "package_name": "com.azzurri.influencer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "215035424615-to9g37iiecuih79vcn0g1avtq8t14mm1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDp5d4E9Ssi-UnB_2z1ahjRJIqC2dynyos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "215035424615-to9g37iiecuih79vcn0g1avtq8t14mm1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "215035424615-ctdm04h2u0u39coj8sev477hsdm26hor.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.azzurri.influencer"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

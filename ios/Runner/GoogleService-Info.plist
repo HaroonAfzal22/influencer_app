@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>215035424615-ctdm04h2u0u39coj8sev477hsdm26hor.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.215035424615-ctdm04h2u0u39coj8sev477hsdm26hor</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAW2JxupyPnTxmgTyr7cELX21yRp_nJw3U</string>
+	<key>GCM_SENDER_ID</key>
+	<string>215035424615</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.azzurri.influencer</string>
+	<key>PROJECT_ID</key>
+	<string>influancer-thinkalize</string>
+	<key>STORAGE_BUCKET</key>
+	<string>influancer-thinkalize.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:215035424615:ios:cafe556f7d50a68a8c89c2</string>
+</dict>
+</plist>
