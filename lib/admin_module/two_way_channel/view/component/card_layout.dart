@@ -23,9 +23,11 @@ class TwoWayUserChannelCard extends StatelessWidget {
         // currentUser.currentUser?.userRole == 'user'
         //     ? Get.to(UserInputChatView())
         //     :
+        /*
         Get.to(AdminInputGroupView(
           user: chat.sender,
         ));
+        */
       },
       child: Container(
         padding: EdgeInsets.symmetric(

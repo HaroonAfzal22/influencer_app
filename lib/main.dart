@@ -9,6 +9,7 @@ import 'package:get/get_navigation/get_navigation.dart';
 import 'package:influencer/FirebaseMessage/single_chat_history_controller.dart';
 import 'package:influencer/Firebase_notification/notification_services.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/routes/app_routes.dart';
 import 'package:influencer/userModule/user_contactti/view/contactlsit.dart';
@@ -21,7 +22,6 @@ Future<void> background(RemoteMessage remotevent) async {
 }
 
 void main() async {
- 
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   LocalNotificationServices.initialize();
@@ -30,6 +30,7 @@ void main() async {
   runApp(const Influencer());
   Get.put(CurrentUserController());
   Get.put(MessageController());
+  Get.put(AdminGroupChatController);
 }
 
 class Influencer extends StatefulWidget {
@@ -44,35 +45,31 @@ class _InfluencerState extends State<Influencer> {
   void initState() {
     // TODO: implement initState
     super.initState();
-         FirebaseMessaging.instance.getInitialMessage().then((event) {
+    FirebaseMessaging.instance.getInitialMessage().then((event) {
       if (event != null) {
         final routefromNotification = event.data['route'];
-        log(
-            'Notification route data when app is Closed:  ${routefromNotification}');
+        log('Notification route data when app is Closed:  ${routefromNotification}');
       }
     });
 
-     // forground work
+    // forground work
 
     FirebaseMessaging.onMessage.listen((message) {
-
-      if(message !=null){
+      if (message != null) {
         LocalNotificationServices.display(message);
       }
-
     });
 
     // when app is in bacground but not closed
 
-  FirebaseMessaging.onMessageOpenedApp.listen((event) {
+    FirebaseMessaging.onMessageOpenedApp.listen((event) {
       final routefromNotification = event.data['route'];
       // Navigator.pushNamed(context, routefromNotification);
 
-    log(
-          'Notification route data when app is minimized:  ${routefromNotification}');
+      log('Notification route data when app is minimized:  ${routefromNotification}');
     });
-
   }
+
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(

@@ -1,6 +1,12 @@
+import 'dart:developer';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:influencer/admin_module/contactti/view/component/newchannel_appbar.dart';
+import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_input_view.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/util/color.dart';
@@ -14,6 +20,9 @@ class AdminNewChannel extends StatefulWidget {
 }
 
 class _AdminNewChannelState extends State<AdminNewChannel> {
+  final aGroupController = Get.find<AdminGroupChatController>();
+  final con = Get.find<CurrentUserController>();
+  final fireStore = FirebaseFirestore.instance;
   bool status = false;
   bool status2 = false;
   bool status3 = false;
@@ -122,9 +131,24 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
                   backgroundColor: IColor.mainBlueColor,
                   radius: Dimensions.fontsize30,
                   child: InkWell(
-                      onTap: () {
+                      onTap: () async {
+                        await fireStore
+                            .collection('groupChats')
+                            .doc(
+                                '${aGroupController.groupName + con.currentUser!.uid.toString()}')
+                            .collection(aGroupController.groupName)
+                            .doc(aGroupController.groupName +
+                                con.currentUser!.uid.toString())
+                            .set({
+                          'groupName': aGroupController.groupName,
+                          'GroupMembers': aGroupController.groupMembers,
+                          'lastMessage': '',
+                          'time': Timestamp.now(),
+                        });
+
                         Get.to(AdminInputGroupView());
                         // Get.toNamed(Paths.twoWayChating);
+                        // AdminInputGroupView();
                       },
                       child: Icon(
                         Icons.check,

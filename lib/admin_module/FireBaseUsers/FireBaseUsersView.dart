@@ -12,6 +12,8 @@ import 'package:influencer/util/color.dart';
 import 'package:influencer/util/string.dart';
 import 'package:intl/intl.dart';
 
+import '../two_way_channel/view/widgets/admin_group_chat_controller.dart';
+
 class FireBaseUsersView extends StatefulWidget {
   FireBaseUsersView({super.key});
 
@@ -22,6 +24,7 @@ class FireBaseUsersView extends StatefulWidget {
 class _FireBaseUsersViewState extends State<FireBaseUsersView> {
   final controller = Get.put(FireBaseUsersController());
   TextEditingController messageController = TextEditingController();
+  final aGroupController = Get.put(AdminGroupChatController());
 
   List<int> _selectedIndices = [];
 
@@ -75,8 +78,14 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                             onTap: () {
                               if (_selectedIndices.contains(index)) {
                                 _selectedIndices.remove(index);
+                                aGroupController.groupMembers.remove(controller
+                                    .firbaseUsersList[index].uid
+                                    .toString());
                               } else {
                                 _selectedIndices.add(index);
+                                aGroupController.groupMembers.add(controller
+                                    .firbaseUsersList[index].uid
+                                    .toString());
                               }
 
                               setState(() {});
@@ -124,7 +133,7 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                                         },
                                       ),
                                       SmallElevatedButton(
-                                        text: '  oK  ',
+                                        text: '  Create ',
                                         color: Colors.blueAccent,
                                         onTap: () {
                                           if (messageController.text.isEmpty) {
@@ -136,6 +145,8 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                                                     const EdgeInsets.symmetric(
                                                         vertical: 20));
                                           } else {
+                                            aGroupController.groupName =
+                                                messageController.text;
                                             Get.toNamed(Paths.adminNewChannel);
                                           }
                                         },

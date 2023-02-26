@@ -86,6 +86,7 @@ class _MobileContactState extends State<MobileContact> {
             padding: REdgeInsets.all(8.0),
             child: ListTile(
                 onTap: () {
+                 /*
                   Get.to(AdminInputGroupView(
                     user: TwoWayUserModel(
                         id: 1,
@@ -93,6 +94,7 @@ class _MobileContactState extends State<MobileContact> {
                         isOnline: true,
                         name: "qaiser"),
                   ));
+                 */
                 },
                 leading: CircleAvatar(
                   child: Text(_contacts![i].displayName[0]),

@@ -1,33 +1,48 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:get/get.dart';
+import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
+import 'package:influencer/admin_module/btm_nav_profile/model/Profile_message.dart';
+import 'package:influencer/admin_module/btm_nav_profile/model/profiel_model.dart';
 import 'package:influencer/admin_module/two_way_channel/model/two_way_modelclass.dart';
 import 'package:influencer/admin_module/two_way_channel/model/two_way_user_model.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/bottom_sheet.dart';
+import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/admin_module/profile/profile.dart';
+import 'package:influencer/util/LoadingWidget.dart';
 import 'package:influencer/util/color.dart';
 import 'package:influencer/util/commonText.dart';
+import 'package:influencer/util/common_app.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/image_const.dart';
 import 'package:influencer/util/string.dart';
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:io' as io;
 import 'package:flutter_audio_recorder2/flutter_audio_recorder2.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../admin_archived/view/widgets/audioCall.dart';
+import '../../../contactti/view/widget/admin_input_chat_view.dart';
+
 class AdminInputGroupView extends StatefulWidget {
   // final LocalFileSystem localFileSystem;
+  /*
   final TwoWayUserModel? user;
+ */
   // TwoWayChating({localFileSystemm,this.user}) : this.localFileSystem = localFileSystem ?? LocalFileSystem();
 
-  AdminInputGroupView({this.user});
+  // AdminInputGroupView({this.user});
 
   @override
   _AdminInputGroupViewState createState() => _AdminInputGroupViewState();
@@ -35,6 +50,9 @@ class AdminInputGroupView extends StatefulWidget {
 
 class _AdminInputGroupViewState extends State<AdminInputGroupView> {
   final TextEditingController controller = TextEditingController();
+  final aGroupController = Get.find<AdminGroupChatController>();
+  final con = Get.find<CurrentUserController>();
+  final fireStore = FirebaseFirestore.instance;
   bool emojiShowing = false;
   bool isbutton = false;
   final FocusNode focusNode = FocusNode();
@@ -121,140 +139,6 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
 
   File? imageFile;
 
-  _chatBubble(TwoWayMessage message, bool isMe, bool isSameUser) {
-    if (isMe) {
-      return Row(
-        textDirection: TextDirection.rtl,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          !isSameUser
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: <Widget>[
-                    SizedBox(
-                      width: Dimensions.padding8,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 22.r,
-                        child: Image.asset(widget.user!.imageUrl.toString()),
-                      ),
-                    ),
-                  ],
-                )
-              : Container(
-                  child: null,
-                ),
-          Container(
-            alignment: Alignment.topRight,
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.70,
-              ),
-              padding: EdgeInsets.all(Dimensions.paddingLeft10),
-              margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.circular(Dimensions.textsize15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                  ),
-                ],
-              ),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.80,
-                ),
-                child: Text(
-                  message.text,
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    } else {
-      return Row(
-        // textDirection: TextDirection.rtl,
-        crossAxisAlignment: CrossAxisAlignment.start,
-
-        children: <Widget>[
-          !isSameUser
-              ? Row(
-                  children: <Widget>[
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 22.r,
-                        backgroundColor: Colors.blue,
-                        backgroundImage: AssetImage(ImageConstant.dummyImage3),
-                      ),
-                    ),
-                  ],
-                )
-              : Container(
-                  child: null,
-                ),
-          SizedBox(
-            width: Dimensions.height6,
-          ),
-          Container(
-            alignment: Alignment.topLeft,
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.70,
-              ),
-              padding: EdgeInsets.all(Dimensions.paddingLeft10),
-              margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
-              decoration: BoxDecoration(
-                color: IColor.recieve_message_container_color,
-                borderRadius: BorderRadius.circular(Dimensions.textsize15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                  ),
-                ],
-              ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: Colors.black54,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-  }
-
   // _sendMessageArea() {
   //   return }
 
@@ -273,272 +157,391 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
         return Future.value(false);
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFF6F6F6),
+        backgroundColor: const Color(0xFFF6F6F6),
         body: SafeArea(
-          child: Stack(
-            children: [
-              Column(
-                children: <Widget>[
-                  SizedBox(
-                    height: 10.h,
-                  ),
-                  appbar(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              ChatingAppBar(
+                avator: InkWell(
+                    onTap: () {
+                      Get.to(Profile());
+                    },
+                    child: CircleAvatar(
+                      radius: Dimensions.fontSize12 * 2,
+                      child: Image.asset('assets/img.jpeg'),
+                    )),
+                backbtn: const Icon(
+                  Icons.arrow_back,
+                  color: IColor.mainBlueColor,
+                ),
+                backFunction: () {
+                  Get.offAll(() => BottomNavigationBarPage());
+                },
+                name: 'Group Name',
+                sufix1onpress: () {
+                  // Get.toNamed(Paths.voiceCall);
+                  Get.to(const VoiceCall());
+                },
+                sufixicon1: const Icon(
+                  Icons.call,
+                  color: IColor.mainBlueColor,
+                ),
+                sufix2onpress: () {
+                  Get.toNamed(Paths.contattiVideoCall);
+                },
+                sufixicon2: ImageConstant.imgVideocamera,
+                sufixicon3: const Icon(
+                  Icons.more_vert,
+                  color: IColor.mainBlueColor,
+                ),
+              ),
 
-                  Expanded(
-                    child: ListView.builder(
-                      reverse: true,
-                      padding: EdgeInsets.all(Dimensions.fontSize20),
-                      itemCount: twowaymessage.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final TwoWayMessage message = twowaymessage[index];
-                        final bool isMe =
-                            message.sender.id == TwowayCurrentUser.id;
-                        final bool isSameUser = prevUserId == message.sender.id;
-                        prevUserId = message.sender.id;
-                        return _chatBubble(message, isMe, isSameUser);
-                      },
-                    ),
-                  ),
-                  // _sendMessageArea(),
-                  Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Padding(
-                        padding: EdgeInsets.only(left: Dimensions.fontSize20),
-                        child: Row(
-                          children: [
-                            CommonText(
-                              title: widget.user!.name.toString(),
-                              color: IColor.grey_color,
-                            ),
-                            SizedBox(
-                              width: Dimensions.height4,
-                            ),
-                            CommonText(
-                              title: Strings.sta_scrivendo,
-                              color: IColor.grey_color,
-                            )
-                          ],
+              StreamBuilder(
+                stream: fireStore
+                    .collection('groupChats')
+                    .doc(
+                        '${aGroupController.groupName + con.currentUser!.uid.toString()}')
+                    .collection(aGroupController.groupName)
+                    .doc(aGroupController.groupName +
+                        con.currentUser!.uid.toString())
+                    .collection('Messages')
+                    .orderBy('time', descending: false)
+                    .snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasData) {
+                    return Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 15),
+                        reverse: true,
+                        shrinkWrap: true,
+                        scrollDirection: Axis.vertical,
+                        children: snapshot.data!.docs.reversed
+                            .map((DocumentSnapshot document) {
+                          Map<String, dynamic> data =
+                              document.data() as Map<String, dynamic>;
+
+                          DateTime dateTime = data["time"].toDate();
+
+                          final dateString =
+                              DateFormat(' hh:mm:ss').format(dateTime);
+                          return ChatBubbleWidget(
+                            name: data['senderName'],
+                            isMe: data['senderEmail'] == con.currentUser?.email,
+                            message: data['message'],
+                            time: dateString,
+                          );
+
+                          //     MessageBubble(
+                          //   // chatImageUrl: data['BannerImage'] ?? '',
+                          //   myDate: dateString,
+                          //   isME: data['senderEmail'] == con.currentUser?.email,
+                          //   userEmail: data['senderName'],
+                          //   userText: data['message'] ?? '',
+                          // );
+                        }).toList(),
+                      ),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Text('Something went wrong');
+                  }
+
+                  return Center(child: LoaderWidget());
+                },
+              ),
+
+              // SizedBox(
+              //   height: 10.h,
+              // ),
+
+              /*
+              Expanded(
+                child: ListView.builder(
+                  reverse: true,
+                  padding: EdgeInsets.all(Dimensions.fontSize20),
+                  itemCount: twowaymessage.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final TwoWayMessage message = twowaymessage[index];
+                    // final bool isMe =
+                    //     message.sender.id == TwowayCurrentUser.id;
+                    // final bool isSameUser = prevUserId == message.sender.id;
+                    // prevUserId = message.sender.id;
+                    return _chatBubble(message, true, true);
+                  },
+                ),
+              ),
+             */
+              // _sendMessageArea(),
+              /*
+              Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: Dimensions.fontSize20),
+                    child: Row(
+                      children: [
+                        CommonText(
+                          title: 'common text',
+                          color: IColor.grey_color,
                         ),
-                      )),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(Dimensions.padding8),
-                        child: Row(
-                          children: [
-                            Container(
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                        Dimensions.fontSize20),
-                                    color: Colors.white),
-                                width: MediaQuery.of(context).size.width - 80,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 100),
-                                  child: isRecording
-                                      ? Container(
-                                          height: 100.h,
-                                          child: Column(
+                        SizedBox(
+                          width: Dimensions.height4,
+                        ),
+                        CommonText(
+                          title: Strings.sta_scrivendo,
+                          color: IColor.grey_color,
+                        )
+                      ],
+                    ),
+                  )),
+           */
+              Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(Dimensions.padding8),
+                    child: Row(
+                      children: [
+                        Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                    Dimensions.fontSize20),
+                                color: Colors.white),
+                            width: MediaQuery.of(context).size.width - 80,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 100),
+                              child: isRecording
+                                  ? Container(
+                                      height: 100.h,
+                                      child: Column(
+                                        children: [
+                                          Row(
                                             children: [
-                                              Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 6.w,
-                                                  ),
-                                                  Text(
-                                                      '${_current?.duration!.toHHMMSS()}'),
-                                                  AudioWaveforms(
-                                                    enableGesture: true,
-                                                    size: Size(
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .width /
-                                                            2.3,
-                                                        40),
-                                                    recorderController:
-                                                        recorderController,
-                                                    waveStyle: const WaveStyle(
-                                                        waveColor: Colors.black,
-                                                        showTop: false,
-                                                        extendWaveform: true,
-                                                        showMiddleLine: false,
-                                                        showHourInDuration:
-                                                            true),
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12.0),
-                                                      // color: const Color(0xFF1E1B26),
-                                                    ),
-                                                    padding: EdgeInsets.only(
-                                                        top: 10.h, left: 18.w),
-                                                    margin:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 15.w),
-                                                  ),
-                                                ],
+                                              SizedBox(
+                                                width: 6.w,
                                               ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  IconButton(
-                                                      onPressed: () {
-                                                        _startOrStopRecording();
-                                                      },
-                                                      icon: Icon(
-                                                        Icons.delete,
-                                                        color: Colors.red,
-                                                        size: 30.sp,
-                                                      )),
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      if (_currentStatus
-                                                              .index ==
-                                                          2) {
-                                                        _pause();
-                                                        setState(() {});
-                                                      } else {
-                                                        _resume();
-                                                        setState(() {});
-                                                      }
-                                                    },
-                                                    child: _buildText(
-                                                        _currentStatus),
-                                                    style: ButtonStyle(
-                                                        backgroundColor:
-                                                            MaterialStateProperty
-                                                                .all<Color>(
-                                                      Colors.transparent,
-                                                    )),
-                                                  ),
-                                                ],
-                                              )
+                                              Text(
+                                                  '${_current?.duration!.toHHMMSS()}'),
+                                              AudioWaveforms(
+                                                enableGesture: true,
+                                                size: Size(
+                                                    MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        2.3,
+                                                    40),
+                                                recorderController:
+                                                    recorderController,
+                                                waveStyle: const WaveStyle(
+                                                    waveColor: Colors.black,
+                                                    showTop: false,
+                                                    extendWaveform: true,
+                                                    showMiddleLine: false,
+                                                    showHourInDuration: true),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.0),
+                                                  // color: const Color(0xFF1E1B26),
+                                                ),
+                                                padding: EdgeInsets.only(
+                                                    top: 10.h, left: 18.w),
+                                                margin: EdgeInsets.symmetric(
+                                                    horizontal: 15.w),
+                                              ),
                                             ],
                                           ),
-                                        )
-                                      : TextFormField(
-                                          onChanged: (value) {
-                                            if (value.length > 0) {
-                                              setState(() {
-                                                isbutton = true;
-                                              });
-                                            } else {
-                                              setState(() {
-                                                isbutton = false;
-                                              });
-                                            }
-                                          },
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          keyboardType: TextInputType.multiline,
-                                          textAlignVertical:
-                                              TextAlignVertical.center,
-                                          decoration: InputDecoration(
-                                            suffixIcon: IconButton(
-                                              onPressed: () {
-                                                showModalBottomSheet(
-                                                    backgroundColor:
-                                                        Colors.transparent,
-                                                    context: context,
-                                                    builder: (builder) =>
-                                                        TwoWayBottomSheet());
-                                              },
-                                              icon: Icon(Icons.attachment),
-                                            ),
-                                            contentPadding: EdgeInsets.all(
-                                                Dimensions.paddingvertical5),
-                                            hintText:
-                                                Strings.chating_search_hinttext,
-                                            hintStyle:
-                                                TextStyle(color: Colors.grey),
-                                            alignLabelWithHint: true,
-                                            border: InputBorder.none,
-                                            prefixIcon: InkWell(
-                                                onTap: () {
-                                                  setState(() {
-                                                    focusNode.unfocus();
-                                                    focusNode.canRequestFocus =
-                                                        false;
-                                                    emojiShowing =
-                                                        !emojiShowing;
-                                                  });
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              IconButton(
+                                                  onPressed: () {
+                                                    _startOrStopRecording();
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.delete,
+                                                    color: Colors.red,
+                                                    size: 30.sp,
+                                                  )),
+                                              TextButton(
+                                                onPressed: () {
+                                                  if (_currentStatus.index ==
+                                                      2) {
+                                                    _pause();
+                                                    setState(() {});
+                                                  } else {
+                                                    _resume();
+                                                    setState(() {});
+                                                  }
                                                 },
-                                                child: Icon(
-                                                  Icons.emoji_emotions,
+                                                child:
+                                                    _buildText(_currentStatus),
+                                                style: ButtonStyle(
+                                                    backgroundColor:
+                                                        MaterialStateProperty
+                                                            .all<Color>(
+                                                  Colors.transparent,
                                                 )),
-                                          ),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    )
+                                  : TextFormField(
+                                      onChanged: (value) {
+                                        if (value.length > 0) {
+                                          setState(() {
+                                            isbutton = true;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            isbutton = false;
+                                          });
+                                        }
+                                      },
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      keyboardType: TextInputType.multiline,
+                                      textAlignVertical:
+                                          TextAlignVertical.center,
+                                      decoration: InputDecoration(
+                                        suffixIcon: IconButton(
+                                          onPressed: () {
+                                            showModalBottomSheet(
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                context: context,
+                                                builder: (builder) =>
+                                                    TwoWayBottomSheet());
+                                          },
+                                          icon: Icon(Icons.attachment),
                                         ),
-                                )),
-                            SizedBox(
-                              width: Dimensions.fontSize12,
-                            ),
-                            isbutton
-                                ? InkWell(
-                                    onTap: () {},
-                                    child: CircleAvatar(
-                                      radius: 22.r,
-                                      child: Icon(Icons.send),
+                                        contentPadding: EdgeInsets.all(
+                                            Dimensions.paddingvertical5),
+                                        hintText:
+                                            Strings.chating_search_hinttext,
+                                        hintStyle:
+                                            TextStyle(color: Colors.grey),
+                                        alignLabelWithHint: true,
+                                        border: InputBorder.none,
+                                        prefixIcon: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                focusNode.unfocus();
+                                                focusNode.canRequestFocus =
+                                                    false;
+                                                emojiShowing = !emojiShowing;
+                                              });
+                                            },
+                                            child: Icon(
+                                              Icons.emoji_emotions,
+                                            )),
+                                      ),
                                     ),
-                                  )
-                                : InkWell(
-                                    onTap: _startOrStopRecording,
-                                    child: CircleAvatar(
-                                      radius: 22.r,
-                                      child: isRecording
-                                          ? Icon(Icons.send)
-                                          : Icon(
-                                              Icons.mic,
-                                            ),
-                                    ),
-                                  )
-                          ],
-                        ),
-                      ),
-                      // TwoWayEmoji()
-                      Offstage(
-                        offstage: !emojiShowing,
-                        child: SizedBox(
-                            height: 200.h,
-                            child: EmojiPicker(
-                              textEditingController: controller,
-                              config: Config(
-                                columns: 7,
-                                // Issue: https://github.com/flutter/flutter/issues/28894
-                                emojiSizeMax: 32 *
-                                    (foundation.defaultTargetPlatform ==
-                                            TargetPlatform.android
-                                        ? 1.30
-                                        : 1.0),
-                                verticalSpacing: 0,
-
-                                horizontalSpacing: 0,
-                                gridPadding: EdgeInsets.zero,
-
-                                bgColor: const Color(0xFFF2F2F2),
-                                indicatorColor: Colors.blue,
-                                iconColor: Colors.grey,
-                                iconColorSelected: Colors.blue,
-                                backspaceColor: Colors.blue,
-                                skinToneDialogBgColor: Colors.white,
-                                skinToneIndicatorColor: Colors.grey,
-                                enableSkinTones: true,
-                                showRecentsTab: false,
-                                replaceEmojiOnLimitExceed: false,
-                                tabIndicatorAnimDuration: kTabScrollDuration,
-                                categoryIcons: const CategoryIcons(),
-                                buttonMode: ButtonMode.MATERIAL,
-                                checkPlatformCompatibility: true,
-                              ),
                             )),
-                      ),
-                    ],
-                  ),
+                        SizedBox(
+                          width: Dimensions.fontSize12,
+                        ),
 
-                  // emojiPicker()
+                        // isbutton
+                        //     ?
+                        InkWell(
+                          onTap: () {
+                            if (controller.text.isNotEmpty) {
+                              fireStore
+                                  .collection('groupChats')
+                                  .doc(
+                                      '${aGroupController.groupName + con.currentUser!.uid.toString()}')
+                                  .collection(aGroupController.groupName)
+                                  .doc(aGroupController.groupName +
+                                      con.currentUser!.uid.toString())
+                                  .update({
+                                'lastMessage': controller.text,
+                                'time': Timestamp.now(),
+                              });
+                              // group chat
+
+                              fireStore
+                                  .collection('groupChats')
+                                  .doc(
+                                      '${aGroupController.groupName + con.currentUser!.uid.toString()}')
+                                  .collection(aGroupController.groupName)
+                                  .doc(aGroupController.groupName +
+                                      con.currentUser!.uid.toString())
+                                  .collection('Messages')
+                                  .add({
+                                'message': controller.text,
+                                'time': Timestamp.now(),
+                                'senderEmail': con.currentUser?.email,
+                                'senderName': con.currentUser?.name
+                              });
+                              controller.clear();
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: 22.r,
+                            child: Icon(Icons.send),
+                          ),
+                        )
+                        /*
+                            : InkWell(
+                                onTap: _startOrStopRecording,
+                                child: CircleAvatar(
+                                  radius: 22.r,
+                                  child: isRecording
+                                      ? Icon(Icons.send)
+                                      : Icon(
+                                          Icons.mic,
+                                        ),
+                                ),
+                              )
+                          */
+                      ],
+                    ),
+                  ),
+                  // TwoWayEmoji()
+                  Offstage(
+                    offstage: !emojiShowing,
+                    child: SizedBox(
+                        height: 200.h,
+                        child: EmojiPicker(
+                          textEditingController: controller,
+                          config: Config(
+                            columns: 7,
+                            // Issue: https://github.com/flutter/flutter/issues/28894
+                            emojiSizeMax: 32 *
+                                (foundation.defaultTargetPlatform ==
+                                        TargetPlatform.android
+                                    ? 1.30
+                                    : 1.0),
+                            verticalSpacing: 0,
+                            horizontalSpacing: 0,
+                            gridPadding: EdgeInsets.zero,
+                            bgColor: const Color(0xFFF2F2F2),
+                            indicatorColor: Colors.blue,
+                            iconColor: Colors.grey,
+                            iconColorSelected: Colors.blue,
+                            backspaceColor: Colors.blue,
+                            skinToneDialogBgColor: Colors.white,
+                            skinToneIndicatorColor: Colors.grey,
+                            enableSkinTones: true,
+                            showRecentsTab: false,
+                            replaceEmojiOnLimitExceed: false,
+                            tabIndicatorAnimDuration: kTabScrollDuration,
+                            categoryIcons: const CategoryIcons(),
+                            buttonMode: ButtonMode.MATERIAL,
+                            checkPlatformCompatibility: true,
+                          ),
+                        )),
+                  ),
                 ],
               ),
+
+              // emojiPicker()
             ],
           ),
         ),
@@ -715,11 +718,13 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                             onTap: () {
                               Get.to(Profile());
                             },
+                            /*
                             child: CircleAvatar(
                               child:
                                   Image.asset(widget.user!.imageUrl.toString()),
                               radius: 22.r,
                             ),
+                          */
                           ),
                           SizedBox(
                             width: Dimensions.width8,
@@ -775,14 +780,14 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
       text: TextSpan(
         children: [
           TextSpan(
-              text: widget.user?.name,
+              text: 'name',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
               )),
           TextSpan(text: '\n'),
-          widget.user!.isOnline!
+          true
               ? TextSpan(
                   text: 'Online',
                   style: TextStyle(
@@ -801,6 +806,86 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                 )
         ],
       ),
+    );
+  }
+}
+
+class ChatBubbleWidget extends StatelessWidget {
+  ChatBubbleWidget({
+    required this.isMe,
+    required this.message,
+    required this.name,
+    required this.time,
+    Key? key,
+  }) : super(key: key);
+
+  bool isMe;
+  String name;
+  var time;
+  String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      // mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment:
+          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: Dimensions.padding8,
+        ),
+        Text(name),
+        //===========
+        Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.70,
+          ),
+          padding: EdgeInsets.all(Dimensions.paddingLeft10),
+          margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
+          decoration: BoxDecoration(
+            color: isMe
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).canvasColor,
+            borderRadius: BorderRadius.circular(Dimensions.textsize15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 2,
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.80,
+            ),
+            child: Text(
+              message,
+              style: TextStyle(
+                fontWeight: FontWeight.w400,
+                color: isMe ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 2,
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 22.r,
+            child: Image.asset(ImageConstant.dummyImage3),
+          ),
+        ),
+        Text(time)
+      ],
     );
   }
 }
