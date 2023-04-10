@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,10 +7,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:get/get.dart';
 import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
-import 'package:influencer/admin_module/btm_nav_profile/model/Profile_message.dart';
-import 'package:influencer/admin_module/btm_nav_profile/model/profiel_model.dart';
-import 'package:influencer/admin_module/two_way_channel/model/two_way_modelclass.dart';
-import 'package:influencer/admin_module/two_way_channel/model/two_way_user_model.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/bottom_sheet.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
@@ -19,7 +14,6 @@ import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/admin_module/profile/profile.dart';
 import 'package:influencer/util/LoadingWidget.dart';
 import 'package:influencer/util/color.dart';
-import 'package:influencer/util/commonText.dart';
 import 'package:influencer/util/common_app.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/image_const.dart';
@@ -201,11 +195,10 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
               StreamBuilder(
                 stream: fireStore
                     .collection('groupChats')
-                    .doc(
-                        '${aGroupController.groupName + con.currentUser!.uid.toString()}')
-                    .collection(aGroupController.groupName)
-                    .doc(aGroupController.groupName +
-                        con.currentUser!.uid.toString())
+                    .doc('hello group')
+                    // .collection(aGroupController.groupName)
+                    // .doc(aGroupController.groupName +
+                    //     con.currentUser!.uid.toString())
                     .collection('Messages')
                     .orderBy('time', descending: false)
                     .snapshots(),
@@ -452,26 +445,33 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                         InkWell(
                           onTap: () {
                             if (controller.text.isNotEmpty) {
+                              /*
                               fireStore
                                   .collection('groupChats')
+                                 
                                   .doc(
                                       '${aGroupController.groupName + con.currentUser!.uid.toString()}')
                                   .collection(aGroupController.groupName)
                                   .doc(aGroupController.groupName +
                                       con.currentUser!.uid.toString())
+                                 
                                   .update({
                                 'lastMessage': controller.text,
                                 'time': Timestamp.now(),
                               });
+                              */
                               // group chat
 
                               fireStore
                                   .collection('groupChats')
+                                  .doc('hello group')
+                                  /*
                                   .doc(
                                       '${aGroupController.groupName + con.currentUser!.uid.toString()}')
                                   .collection(aGroupController.groupName)
                                   .doc(aGroupController.groupName +
                                       con.currentUser!.uid.toString())
+                                 */
                                   .collection('Messages')
                                   .add({
                                 'message': controller.text,

@@ -78,13 +78,28 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                             onTap: () {
                               if (_selectedIndices.contains(index)) {
                                 _selectedIndices.remove(index);
+                                /*
                                 aGroupController.groupMembers.remove(controller
                                     .firbaseUsersList[index].uid
                                     .toString());
+                            */
+
+                                aGroupController.groupMembersStatusMap.remove(
+                                    controller.firbaseUsersList[index].uid
+                                        .toString());
+                                log(aGroupController.groupMembersStatusMap
+                                    .toString());
                               } else {
                                 _selectedIndices.add(index);
+                                /*
                                 aGroupController.groupMembers.add(controller
                                     .firbaseUsersList[index].uid
+                                    .toString());
+                              */
+                                aGroupController.groupMembersStatusMap[
+                                    controller.firbaseUsersList[index].uid
+                                        .toString()] = 0;
+                                log(aGroupController.groupMembersStatusMap
                                     .toString());
                               }
 
@@ -98,7 +113,7 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                   })),
             ),
             Align(
-              alignment: Alignment(0.95, 0.8),
+              alignment: const Alignment(0.95, 0.8),
               child: Container(
                   child: Padding(
                 padding: EdgeInsets.symmetric(
@@ -108,7 +123,56 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                     radius: h * 0.035,
                     child: InkWell(
                         onTap: () {
+                          print('working');
                           if (_selectedIndices.isNotEmpty) {
+                            /*
+                            if (aGroupController
+                                .groupMembersStatus.isNotEmpty) {
+                              aGroupController.groupMembersStatus.clear();
+
+                              for (int i = 0;
+                                  i < aGroupController.groupMembers.length;
+                                  i++) {
+                                if (aGroupController
+                                    .groupMembersStatus.isNotEmpty) {
+                                  aGroupController.groupMembersStatus[
+                                      aGroupController.groupMembers[i]] = false;
+                                }
+                                aGroupController.groupMembersStatus[
+                                    aGroupController.groupMembers[i]] = false;
+                              }
+                              log('if printing');
+                            } else {
+                              for (int i = 0;
+                                  i < aGroupController.groupMembers.length;
+                                  i++) {
+                                if (aGroupController
+                                    .groupMembersStatus.isNotEmpty) {
+                                  aGroupController.groupMembersStatus[
+                                      aGroupController.groupMembers[i]] = false;
+                                }
+                                aGroupController.groupMembersStatus[
+                                    aGroupController.groupMembers[i]] = false;
+                              }
+                            }
+                       */
+
+                            log(aGroupController.groupMembersStatusMap
+                                .toString());
+
+                            // var result = {
+                            //   for (var v in aGroupController.groupMembers)
+                            //     v[0]: v[1]
+                            // };
+                            // Map m = Map();
+                            // for (int i = 0;
+                            //     i < aGroupController.groupMembers.length;
+                            //     i++) {
+                            //   m.addAll( aGroupController.groupMembers[i])
+                            // }
+                            // log(m.toString());
+
+                            /*
                             showDialog(
                                 context: context,
                                 builder: (context) {
@@ -154,6 +218,7 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                                     ],
                                   );
                                 });
+                    */
                           } else if (_selectedIndices.isEmpty) {
                             Get.snackbar('Error', 'Please select user for chat',
                                 snackPosition: SnackPosition.BOTTOM,

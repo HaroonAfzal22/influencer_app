@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -134,14 +133,23 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
                       onTap: () async {
                         await fireStore
                             .collection('groupChats')
-                            .doc(
-                                '${aGroupController.groupName + con.currentUser!.uid.toString()}')
+                            .doc(aGroupController.groupName).collection(aGroupController.groupMembers.toString()).doc()
+                            /*
                             .collection(aGroupController.groupName)
                             .doc(aGroupController.groupName +
                                 con.currentUser!.uid.toString())
-                            .set({
+                          */
+                            .set(
+                              {
                           'groupName': aGroupController.groupName,
-                          'GroupMembers': aGroupController.groupMembers,
+                          
+                          // 'GroupMembers': {
+                          //   for (int i = 0;
+                          //       i <= aGroupController.groupMembers.length;
+                          //       i++)
+                          //     {aGroupController.groupMembers[i]: '0'}
+                          // },
+                          'groupSetting': aGroupController.groupSetting,
                           'lastMessage': '',
                           'time': Timestamp.now(),
                         });

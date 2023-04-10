@@ -56,7 +56,7 @@ class AuthProvider {
       await auth.signInWithEmailAndPassword(email: email, password: password);
 
       if (auth.currentUser != null) {
-        // if (auth.currentUser?.emailVerified ?? true) {
+        if (auth.currentUser?.emailVerified ?? true) {
           final userDocId = auth.currentUser?.uid;
 
           final userDocData = await users.doc(userDocId).get();
@@ -65,10 +65,10 @@ class AuthProvider {
 
           // I ll implement furthur here things thanks
           Get.offNamed(Paths.bottomNavigationBarPage);
-        // } else {
-        //   auth.currentUser!.sendEmailVerification();
-        //   Get.to(const EmailverificationView());
-        // }
+        } else {
+          auth.currentUser!.sendEmailVerification();
+          Get.to(const EmailverificationView());
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
