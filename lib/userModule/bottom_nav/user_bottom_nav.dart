@@ -26,7 +26,7 @@ class _UserSideBottomNavigationBarPageState extends State<UserSideBottomNavigati
 
   static List<Widget> _widgetOptions = <Widget>[
      UserSideTwoWayUserChannel(),
-    const MobileContact(),
+   const MobileContact(isArrowIcon: false,),
     // ContactList(),
     Profile(),
     // Profile(),

@@ -59,7 +59,7 @@ class LoginView extends StatelessWidget {
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: h * 0.03),
                             child: Text(
-                              "Email",
+                              "E-mail",
                               style: TextStyle(color: IColor.colorWhite),
                             ),
                           ),
@@ -71,9 +71,9 @@ class LoginView extends StatelessWidget {
                               hint: "La tua e-mail",
                               formvalidate: (value) {
                                 if (!value!.contains('@') && value.isNotEmpty) {
-                                  return 'Email is not Valid';
+                                  return "L'email non è valida";
                                 } else if (value.isEmpty) {
-                                  return 'Please Enter an Email';
+                                  return "Inserisci un'e-mail";
                                 }
                                 return null;
                               },
@@ -82,7 +82,7 @@ class LoginView extends StatelessWidget {
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: h * 0.03),
                             child: Text(
-                              "Password",
+                              "Parola d'ordine",
                               style: TextStyle(color: IColor.colorWhite),
                             ),
                           ),
@@ -94,15 +94,15 @@ class LoginView extends StatelessWidget {
                                 EdgeInsets.symmetric(horizontal: h * 0.026),
                             child: EditText(
                               controller: controller.passwordLoginController,
-                              hint: "Password",
+                              hint: "Parola d'ordine",
                               formvalidate: (value) {
                                 if (value.isNotEmpty && value.length > 7) {
                                   return null;
                                 } else if (value.length < 8 &&
                                     value.isNotEmpty) {
-                                  return 'Please Enter at least 8 characters';
+                                  return 'Inserisci almeno 8 caratteri';
                                 } else {
-                                  return 'Please Enter Your password';
+                                  return 'Per favore inserisci LA TUA password';
                                 }
                               },
                             ),

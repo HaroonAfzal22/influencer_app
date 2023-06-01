@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -47,7 +49,6 @@ class _InfluencerFormState extends State<InfluencerForm> {
   @override
   void initState() {
     super.initState();
-    dropdownValue;
   }
 
   List categoryItemlist = [];
@@ -96,9 +97,9 @@ class _InfluencerFormState extends State<InfluencerForm> {
                             if (value.isNotEmpty && value.length > 2) {
                               return null;
                             } else if (value.length < 3 && value.isNotEmpty) {
-                              return 'Please Enter at least 3 characters';
+                              return 'Inserisci almeno tre caratteri';
                             } else {
-                              return 'Please Enter Your Name';
+                              return 'Per favore inserisci il tuo nome';
                             }
                           },
                         ),
@@ -111,9 +112,9 @@ class _InfluencerFormState extends State<InfluencerForm> {
                             if (value.isNotEmpty && value.length > 2) {
                               return null;
                             } else if (value.length < 3 && value.isNotEmpty) {
-                              return 'Please Enter at least 3 characters';
+                              return 'Inserisci almeno tre caratteri';
                             } else {
-                              return 'Please Enter Your Last Name';
+                              return 'Inserisci il tuo cognome';
                             }
                           },
                         ),
@@ -125,9 +126,9 @@ class _InfluencerFormState extends State<InfluencerForm> {
                           controller: controller.emailController,
                           formvalidate: (value) {
                             if (!value!.contains('@') && value.isNotEmpty) {
-                              return 'Email is not Valid';
+                              return "L'email non è valida";
                             } else if (value.isEmpty) {
-                              return 'Please Enter an Email';
+                              return "Inserisci un'e-mail";
                             }
                             return null;
                           },
@@ -198,6 +199,8 @@ class _InfluencerFormState extends State<InfluencerForm> {
                                     ),
                                     // subtitle: Text("Radio 1 Subtitle"),
                                     onChanged: (value) {
+                                      controller.opzion1.toString();
+                                      log('message log in op1 $value');
                                       if (value != dropdownValue2) {
                                         setState(() {
                                           dropdownValue = value.toString();
@@ -281,7 +284,8 @@ class _InfluencerFormState extends State<InfluencerForm> {
                                             color: IColor.colorblack)),
                                     // subtitle: Text("Radio 1 Subtitle"),
                                     onChanged: (value) {
-                                      print("Radio Tile pressed $value");
+                                      controller.opzion2.toString();
+                                      log('message log in op2 $value');
                                       if (value != dropdownValue) {
                                         setState(() {
                                           dropdownValue2 = value.toString();
@@ -347,15 +351,15 @@ class _InfluencerFormState extends State<InfluencerForm> {
                         EditText(
                           // type: TextInputType.number
                           controller: controller.phoneController,
-                          formvalidate: (value) {
-                            if (phoneValidator.hasMatch(value)) {
-                              return null;
-                            } else if (value.length < 10) {
-                              return 'Please Enter 11 digits of mobile number';
-                            } else {
-                              return 'Please Enter Phone Number';
-                            }
-                          },
+                          // formvalidate: (value) {
+                          //   if (phoneValidator.hasMatch(value)) {
+                          //     return null;
+                          //   } else if (value.length < 10) {
+                          //     return 'Please Enter 11 digits of mobile number';
+                          //   } else {
+                          //     return 'Please Enter Phone Number';
+                          //   }
+                          // },
                         ),
                         space(),
 
@@ -462,9 +466,9 @@ class _InfluencerFormState extends State<InfluencerForm> {
                             if (value.isNotEmpty && value.length > 7) {
                               return null;
                             } else if (value.length < 8 && value.isNotEmpty) {
-                              return 'Please Enter at least 8 characters';
+                              return 'Inserisci almeno 8 caratteri';
                             } else {
-                              return 'Please Enter Your password';
+                              return 'Per favore inserisci LA TUA password';
                             }
                           },
                         ),
@@ -479,9 +483,9 @@ class _InfluencerFormState extends State<InfluencerForm> {
                             if (value.isNotEmpty && value.length > 7) {
                               return null;
                             } else if (value.length < 8 && value.isNotEmpty) {
-                              return 'Please Enter at least 8 characters';
+                              return 'Inserisci almeno 8 caratteri';
                             } else {
-                              return 'Please Enter Your password';
+                              return 'Per favore inserisci LA TUA password';
                             }
                           },
                         ),
@@ -494,7 +498,7 @@ class _InfluencerFormState extends State<InfluencerForm> {
                         space(),
 
                         //PRIVACY POLICY
-                        txtname("PRIVACY POLICY"),
+                        txtname("politica sulla riservatezza"),
                         Row(
                           children: [
                             Checkbox(
@@ -506,7 +510,7 @@ class _InfluencerFormState extends State<InfluencerForm> {
                                 });
                               },
                             ),
-                            const Text("PRIVACY POLICY")
+                            const Text("politica sulla riservatezza")
                           ],
                         ),
                         controller.isLoading == true
@@ -544,15 +548,15 @@ class _InfluencerFormState extends State<InfluencerForm> {
                                       if (checkvalue == true) {
                                         controller.createUser();
                                       } else {
-                                        Get.snackbar('Error',
-                                            'Please accept the privacey Policy',
+                                        Get.snackbar('Errore',
+                                            "Si prega di accettare l'informativa sulla privacy",
                                             snackPosition: SnackPosition.BOTTOM,
                                             margin: const EdgeInsets.symmetric(
                                                 vertical: 20));
                                       }
                                     } else if (compare != 0) {
-                                      Get.snackbar(
-                                          'Error', 'Your password not matched',
+                                      Get.snackbar('Errore',
+                                          'La tua password non corrisponde',
                                           snackPosition: SnackPosition.BOTTOM,
                                           margin: const EdgeInsets.symmetric(
                                               vertical: 20));

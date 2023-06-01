@@ -68,7 +68,7 @@ class Strings {
   static const String password = 'Password';
   static const String confirm_password = 'confirm Password';
   static const String reset_password = 'Reset Password';
-  static const String profile = 'Profile';
+  static const String profile = 'Profilo';
   static const String mio_account = 'II mio account';
   static const String notifiche = 'Notifiche';
   static const String groupName = 'Write you\'r group Name';

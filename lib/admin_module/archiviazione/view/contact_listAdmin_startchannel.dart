@@ -112,24 +112,27 @@ class Archiviazione extends StatelessWidget {
                           CommonText(
                             title: Strings.vedi_tutto,
                             color: IColor.grey_color,
-                          )
+                          ),
                         ],
                       ),
                     ),
-                    Container(
-                      // margin: EdgeInsets.only(bottom: 60.h),
-                      height: Get.size.height,
-                      child: ListView.builder(
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: TwoWayChats.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final TwoWayMessage chat = TwoWayChats[index];
-                          return TwoWayUserChannelCard(
-                            chat: chat,
-                          );
-                        },
-                      ),
-                    ),
+                    // Container(
+                    //   // margin: EdgeInsets.only(bottom: 60.h),
+                    //   height: Get.size.height,
+                    //   child: ListView.builder(
+                    //     physics: NeverScrollableScrollPhysics(),
+                    //     itemCount: TwoWayChats.length,
+                    //     itemBuilder: (BuildContext context, int index) {
+                    //       final TwoWayMessage chat = TwoWayChats[index];
+                    //       return TwoWayUserChannelCard(
+                    //         chat: chat,
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
+                    Center(
+                      child: const Text('Non hai alcuna chat in archivio'),
+                    )
                   ],
                 ),
               )

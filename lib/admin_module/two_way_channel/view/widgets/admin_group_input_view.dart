@@ -1,15 +1,22 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:get/get.dart';
+import 'package:influencer/FirebaseServices/firebase_methods.dart';
+import 'package:influencer/FirebaseServices/firebase_methods.dart';
+import 'package:influencer/Firebase_notification/notification_services.dart';
+import 'package:influencer/admin_module/admin_group/admin_group_detail_view.dart';
 import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/bottom_sheet.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/group_list_card_widget.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/admin_module/profile/profile.dart';
 import 'package:influencer/util/LoadingWidget.dart';
@@ -49,14 +56,18 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
   final fireStore = FirebaseFirestore.instance;
   bool emojiShowing = false;
   bool isbutton = false;
+  String audioPlayerPath = '';
+  FireBaseMethods fireBaseMethods = FireBaseMethods();
   final FocusNode focusNode = FocusNode();
+  late AudioPlayer audioPlayer;
 
   bool isRecording = false;
   bool isstart = true;
   @override
   void initState() {
     super.initState();
-
+    audioPlayer = AudioPlayer();
+    getUsesrFcm();
     _initialiseControllers();
     initRecorder();
     _init();
@@ -69,8 +80,22 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
     });
   }
 
+// getting users fcm
+  Future getUsesrFcm() async {
+    aGroupController.userFcm
+        .addAll(aGroupController.groupMembersStatusMap.keys);
+    for (int i = 0; i < aGroupController.userFcm.length; i++) {
+      var fcms = await fireBaseMethods.getUserCollectData(
+          otherUserId: aGroupController.userFcm[i], collection: 'users');
+
+      aGroupController.adminCollectionFcm.add(fcms['fcmToken']);
+    }
+  }
+
   @override
   void dispose() {
+    aGroupController.userFcm.clear();
+    aGroupController.adminCollectionFcm.clear();
     // _soundRecorder.closeRecorder();
     super.dispose();
     _disposeControllers();
@@ -159,13 +184,17 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
             children: <Widget>[
               ChatingAppBar(
                 avator: InkWell(
-                    onTap: () {
-                      Get.to(Profile());
-                    },
-                    child: CircleAvatar(
-                      radius: Dimensions.fontSize12 * 2,
-                      child: Image.asset('assets/img.jpeg'),
-                    )),
+                  onTap: () {
+                    Get.to(const AdminGroupDetailView());
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: Colors.grey.shade100,
+                    radius: 20.r,
+                    child: ImageWidgetProg(
+                      imageUrl: aGroupController.groupPhoto,
+                    ),
+                  ),
+                ),
                 backbtn: const Icon(
                   Icons.arrow_back,
                   color: IColor.mainBlueColor,
@@ -173,7 +202,7 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                 backFunction: () {
                   Get.offAll(() => BottomNavigationBarPage());
                 },
-                name: 'Group Name',
+                name: aGroupController.groupName,
                 sufix1onpress: () {
                   // Get.toNamed(Paths.voiceCall);
                   Get.to(const VoiceCall());
@@ -195,10 +224,7 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
               StreamBuilder(
                 stream: fireStore
                     .collection('groupChats')
-                    .doc('hello group')
-                    // .collection(aGroupController.groupName)
-                    // .doc(aGroupController.groupName +
-                    //     con.currentUser!.uid.toString())
+                    .doc(aGroupController.groupName)
                     .collection('Messages')
                     .orderBy('time', descending: false)
                     .snapshots(),
@@ -226,14 +252,6 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                             message: data['message'],
                             time: dateString,
                           );
-
-                          //     MessageBubble(
-                          //   // chatImageUrl: data['BannerImage'] ?? '',
-                          //   myDate: dateString,
-                          //   isME: data['senderEmail'] == con.currentUser?.email,
-                          //   userEmail: data['senderName'],
-                          //   userText: data['message'] ?? '',
-                          // );
                         }).toList(),
                       ),
                     );
@@ -245,6 +263,7 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                   return Center(child: LoaderWidget());
                 },
               ),
+           
 
               // SizedBox(
               //   height: 10.h,
@@ -443,35 +462,35 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                         // isbutton
                         //     ?
                         InkWell(
-                          onTap: () {
+                          onTap: () async {
                             if (controller.text.isNotEmpty) {
-                              /*
+                              // add fcm into list
+
+                              // add user message  conter
+
+                              Map mp = aGroupController.groupMembersStatusMap;
+                              mp.forEach((key, value) {
+                                mp[key] = value + 1;
+                              });
+                              aGroupController.groupMembersStatusMap = mp;
+
+                              // updating collection
+
                               fireStore
                                   .collection('groupChats')
-                                 
-                                  .doc(
-                                      '${aGroupController.groupName + con.currentUser!.uid.toString()}')
-                                  .collection(aGroupController.groupName)
-                                  .doc(aGroupController.groupName +
-                                      con.currentUser!.uid.toString())
-                                 
+                                  .doc(aGroupController.groupId)
                                   .update({
-                                'lastMessage': controller.text,
+                                'GroupMembers':
+                                    aGroupController.groupMembersStatusMap,
                                 'time': Timestamp.now(),
+                                'lastMessage': controller.text,
                               });
-                              */
+
                               // group chat
 
                               fireStore
                                   .collection('groupChats')
-                                  .doc('hello group')
-                                  /*
-                                  .doc(
-                                      '${aGroupController.groupName + con.currentUser!.uid.toString()}')
-                                  .collection(aGroupController.groupName)
-                                  .doc(aGroupController.groupName +
-                                      con.currentUser!.uid.toString())
-                                 */
+                                  .doc(aGroupController.groupId)
                                   .collection('Messages')
                                   .add({
                                 'message': controller.text,
@@ -479,6 +498,12 @@ class _AdminInputGroupViewState extends State<AdminInputGroupView> {
                                 'senderEmail': con.currentUser?.email,
                                 'senderName': con.currentUser?.name
                               });
+                              LocalNotificationServices.sendGroupNotification(
+                                aGroupController.adminCollectionFcm,
+                                'nuovo messaggio',
+                                controller.text,
+                              );
+
                               controller.clear();
                             }
                           },
@@ -827,7 +852,7 @@ class ChatBubbleWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      // mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment:
           isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: <Widget>[
@@ -836,56 +861,88 @@ class ChatBubbleWidget extends StatelessWidget {
         ),
         Text(name),
         //===========
-        Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.70,
-          ),
-          padding: EdgeInsets.all(Dimensions.paddingLeft10),
-          margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
-          decoration: BoxDecoration(
-            color: isMe
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).canvasColor,
-            borderRadius: BorderRadius.circular(Dimensions.textsize15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.5),
-                spreadRadius: 2,
-                blurRadius: 5,
+        Row(
+          mainAxisAlignment:
+              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Visibility(
+                visible: isMe ? false : true,
+                child: ImageAvatarWidget(
+                  isMe: isMe,
+                )),
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.70,
               ),
-            ],
-          ),
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.80,
+              padding: EdgeInsets.all(Dimensions.paddingLeft10),
+              margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
+              decoration: BoxDecoration(
+                color: isMe
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).canvasColor,
+                borderRadius: BorderRadius.circular(Dimensions.textsize15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                  ),
+                ],
+              ),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.80,
+                ),
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    color: isMe ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
             ),
-            child: Text(
-              message,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-                color: isMe ? Colors.white : Colors.black,
-              ),
-            ),
-          ),
+            Visibility(
+                visible: isMe == true,
+                child: ImageAvatarWidget(
+                  isMe: isMe,
+                )),
+          ],
         ),
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.5),
-                spreadRadius: 2,
-                blurRadius: 5,
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: 22.r,
-            child: Image.asset(ImageConstant.dummyImage3),
-          ),
-        ),
+
         Text(time)
       ],
+    );
+  }
+}
+
+class ImageAvatarWidget extends StatelessWidget {
+  ImageAvatarWidget({
+    required this.isMe,
+    Key? key,
+  }) : super(key: key);
+  bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: isMe
+          ? const EdgeInsets.only(left: 5)
+          : const EdgeInsets.only(right: 5),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 22.r,
+        child: Image.asset(ImageConstant.dummyImage3),
+      ),
     );
   }
 }

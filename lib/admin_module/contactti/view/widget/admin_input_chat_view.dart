@@ -2,9 +2,11 @@ import 'dart:developer' as devtools show log;
 import 'dart:developer';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:audioplayers/audioplayers.dart' as player;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
@@ -13,17 +15,24 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:influencer/FirebaseMessage/single_chat_history_controller.dart';
-import 'package:influencer/admin_module/FireBaseUsers/firebase_user_controller.dart';
+import 'package:influencer/FirebaseServices/firbase_collection.dart';
+import 'package:influencer/Firebase_notification/notification_services.dart';
+
 import 'package:influencer/admin_module/admin_archived/controller/admin_archived_controller.dart';
 import 'package:influencer/admin_module/admin_archived/view/component/googlemap.dart';
 import 'package:influencer/admin_module/admin_archived/view/widgets/audioCall.dart';
-import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
+import 'package:influencer/admin_module/contactti/view/widget/audio_provider.dart';
+
+import 'package:influencer/admin_module/profile/profile_controller.dart';
+import 'package:influencer/admin_module/profile/user_profile_detail_view.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/group_list_card_widget.dart';
 import 'package:influencer/routes/app_pages.dart';
-import 'package:influencer/admin_module/profile/profile.dart';
+
 import 'package:influencer/util/LoadingWidget.dart';
 import 'package:influencer/util/color.dart';
-import 'package:influencer/util/commonText.dart';
+
 import 'package:influencer/util/common_app.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/image_const.dart';
@@ -31,9 +40,12 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'package:influencer/util/string.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../FirebaseServices/firebase_methods.dart';
+import '../../../two_way_channel/view/AdminGroupChat/user_group_input_view.dart';
 
+// duration issue
 class AdminInputChatView extends StatefulWidget {
   AdminInputChatView({
     Key? key,
@@ -44,33 +56,58 @@ class AdminInputChatView extends StatefulWidget {
   State<AdminInputChatView> createState() => _AdminInputChatViewState();
 }
 
-class _AdminInputChatViewState extends State<AdminInputChatView> {
+class _AdminInputChatViewState extends State<AdminInputChatView>
+    with WidgetsBindingObserver {
+  final aGroupController = Get.find<AdminGroupChatController>();
   final TextEditingController _controller = TextEditingController();
   final currentUser = Get.find<CurrentUserController>();
   final messageController = Get.find<MessageController>();
+  final proController = Get.find<ProfileController>();
   final fireStore = FirebaseFirestore.instance;
+  final con = Get.find<CurrentUserController>();
+  final AdminArchivedController controller =
+      Get.put<AdminArchivedController>(AdminArchivedController());
+  FirebaseStorage storage = FirebaseStorage.instance;
+  String audioUrl = '';
+  int counter = 0;
+  List myLists = [];
 
   bool emojiShowing = false;
   final FocusNode focusNode = FocusNode();
-
   bool isbutton = false;
-
   bool isRecording = false;
-  late FireBaseOtherUser fireBaseOtherUser;
+  late FireBaseMethods fireBaseOtherUser;
   var otherUserRes;
   var _stream;
   bool isLoad = false;
+
+  late FireBaseMethods _firebaseMethods;
+  int audioDuration = 0;
+  late final RecorderController recorderController;
+  late final PlayerController playerController1;
+
+  String? path;
+  String? musicFile;
+  late Directory appDirectory;
+  final player.AudioPlayer _audioPlayer = player.AudioPlayer();
+  bool isPlaying = false;
+  late final Duration duration;
+  late final Duration position;
+
+  ///////
+
   getOtherUser() async {
     setState(() {
       isLoad = true;
     });
-    fireBaseOtherUser = FireBaseOtherUser();
-    otherUserRes = await fireBaseOtherUser.otherUser(
-        otherUserId: messageController.otherUserId.toString(),
-        collection: 'users');
+    fireBaseOtherUser = FireBaseMethods();
+    otherUserRes = await fireBaseOtherUser.getUserCollectData(
+        otherUserId: messageController.UserId.toString(), collection: 'users');
+    proController.userProfileId = messageController.UserId;
+
     _stream = fireStore
         .collection('users')
-        .doc(messageController.otherUserId.toString())
+        .doc(messageController.UserId.toString())
         .collection('userChat')
         .orderBy('time', descending: false)
         .snapshots();
@@ -82,10 +119,19 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
 
   @override
   void initState() {
+    // audio player
+    duration = Duration();
+    position = Duration();
+
+    // audio player
+
     super.initState();
+    _firebaseMethods = FireBaseMethods();
+
     getOtherUser();
-    // _initialiseControllers();
-    // initRecorder();
+    _initialiseControllers();
+    initRecorder();
+
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         setState(() {
@@ -97,20 +143,14 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
 
   @override
   void dispose() {
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     // _soundRecorder.closeRecorder();
     super.dispose();
     _disposeControllers();
-    //recorder.closeRecorder();
+    recorder.closeRecorder();
   }
 
-  // late final RecorderController recorderController;
-  // late final PlayerController playerController1;
-
-  String? path;
-  String? musicFile;
-  // late Directory appDirectory;
-
-/*
   void _initialiseControllers() {
     recorderController = RecorderController()
       ..androidEncoder = AndroidEncoder.amr_nb
@@ -123,16 +163,14 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
         if (mounted) setState(() {});
       });
   }
-*/
 
   void _disposeControllers() {
-    // recorderController.dispose();
-    // playerController1.stopAllPlayers();
+    recorderController.dispose();
+    playerController1.stopAllPlayers();
   }
 
   bool isButton = false;
 
-/*
   final recorder = FlutterSoundRecorder();
 
   Future initRecorder() async {
@@ -145,18 +183,36 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
   }
 
   Future startRecord() async {
+    isRecording = true;
     await recorder.startRecorder(toFile: "audio");
   }
 
   Future stopRecorder() async {
+    audioUrl = '';
+    isRecording = false;
     final filePath = await recorder.stopRecorder();
+    // await recorderController.record(path);
     final file = File(filePath!);
-    print('Recorded file path: $filePath');
-  }
-*/
+    String uniqueFilename = const Uuid().v1();
+    // var uri = Uri.file(uniqueFilename)
+    Reference reference = FirebaseStorage.instance.ref();
+    Reference referenceRootDir = reference.child('userChat');
+    Reference referenceRootDirToUpload = referenceRootDir.child(uniqueFilename);
+    await referenceRootDirToUpload.putFile(File(filePath));
+    await referenceRootDirToUpload
+        .getDownloadURL()
+        .then((value) => audioUrl = value);
 
-  final AdminArchivedController controller =
-      Get.put<AdminArchivedController>(AdminArchivedController());
+    // Reference ref =
+    //     storage.ref().child('voiceNotes/${file.path.split('/').last}');
+    // UploadTask uploadTask = ref.putFile(file);
+    // TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
+    // String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+    // audioUrl = downloadUrl;
+    setState(() {});
+    recorderController.reset();
+    log('Recorded file path: ${audioUrl} o');
+  }
 
   String fileType = 'All';
   FilePickerResult? result;
@@ -164,6 +220,45 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
 
   File? imageFile;
   Contact? _phoneContact;
+
+  playPauseAudio(mapData) async {
+    log('audio map printingf from a mapData $mapData');
+    // log('messageController.activeAudioMap ${messageController.activeAudioMap.value['id']}');
+    // if (messageController.activeAudioMap.value.isNotEmpty) {
+    //   // if(){
+
+    //   // }
+    //   messageController.activeAudioMap.value.clear();
+
+    //   messageController.audiomap.value['play'] = false;
+    //   await _audioPlayer.stop();
+    // } else if (messageController.activeAudioMap.value.isEmpty) {
+    //   messageController.activeAudioMap.value.addAll(mapData);
+
+    //   await _audioPlayer.play(messageController.audiomap.value['text']);
+    //   messageController.audiomap.value['play'] = true;
+    //   log('after update of map ${messageController.audiomap}');
+
+    //   _audioPlayer.onPlayerStateChanged.listen((event) {
+    //     setState(() {
+    //       event == player.PlayerState.PLAYING;
+    //     });
+    //   });
+
+    //   _audioPlayer.onDurationChanged.listen((event) {
+    //     setState(() {
+    //       messageController.audiomap.value['duration'] = event;
+    //       log('duration change::$event');
+    //     });
+    //   });
+    //   _audioPlayer.onAudioPositionChanged.listen((event) {
+    //     setState(() {
+    //       log('audio position::$event');
+    //       messageController.audiomap.value['position'] = event;
+    //     });
+    //   });
+    // }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,24 +285,30 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
 
                     ChatingAppBar(
                       avator: InkWell(
-                          onTap: () {
-                            Get.to(Profile());
-                          },
-                          child: CircleAvatar(
-                            radius: Dimensions.fontSize12 * 2,
-                            child: Image.asset('assets/img.jpeg'),
-                          )),
-                      backbtn: Icon(
+                        onTap: () {
+                          Get.to(const UserProfileDetailView());
+                        },
+                        child: CircleAvatar(
+                            backgroundColor: Colors.grey.shade100,
+                            radius: 20.r,
+                            child: Obx(
+                              () => ImageWidgetProg(
+                                imageUrl:
+                                    messageController.singleChatImage.value,
+                              ),
+                            )),
+                      ),
+                      backbtn: const Icon(
                         Icons.arrow_back,
                         color: IColor.mainBlueColor,
                       ),
                       backFunction: () {
-                        Get.offAll(() => BottomNavigationBarPage());
+                        Get.back();
                       },
                       name: otherUserRes.data()['name'].toString(),
                       sufix1onpress: () {
                         // Get.toNamed(Paths.voiceCall);
-                        Get.to(VoiceCall());
+                        Get.to(const VoiceCall());
                       },
                       sufixicon1: const Icon(
                         Icons.call,
@@ -217,16 +318,19 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                         Get.toNamed(Paths.contattiVideoCall);
                       },
                       sufixicon2: ImageConstant.imgVideocamera,
-                      sufixicon3: Icon(
+                      sufixicon3: const Icon(
                         Icons.more_vert,
                         color: IColor.mainBlueColor,
                       ),
                     ),
+
                     StreamBuilder(
                       stream: _stream,
                       builder:
                           (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasData) {
+                          ;
+                          log('snapshot.data!.docs.length ${snapshot.data!.docs.length}');
                           return Expanded(
                             child: ListView(
                               padding: const EdgeInsets.symmetric(
@@ -240,30 +344,122 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                                     document.data() as Map<String, dynamic>;
 
                                 DateTime dateTime = data["time"].toDate();
-                                /*
-                           final dateString =
-                              DateFormat('yyyy-MM-dd hh:mm').format(dateTime);
-                          */
+
                                 final dateString =
                                     DateFormat(' hh:mm:ss').format(dateTime);
-                                // devtools.log("Data time $dateString");
-                                return MessageBubble(
-                                  chatImageUrl: data['BannerImage'] ?? '',
-                                  myDate: dateString,
-                                  isME: data['email'] ==
-                                      currentUser.currentUser?.email,
-                                  userEmail: data['name'],
-                                  userText: data['text'] ?? '',
-                                );
+                                Duration duration = Duration(
+                                    milliseconds: data['audioDuration']);
+
+                                if (data['messageType'] == 'audio') {
+                                  bool containsMap = messageController
+                                      .activeAudioMap.value
+                                      .any(
+                                          (map) => map['text'] == data['text']);
+                                  log(' containsMap ${messageController.activeAudioMap.value.length}');
+
+                                  if (!containsMap) {
+                                    messageController.activeAudioMap.value.add({
+                                      'id': data['id'],
+                                      'audioUrl': data['text'],
+                                      'duration': duration,
+                                      'position': duration,
+                                      'play': false
+                                    });
+                                  }
+
+                                  // bool isListAvailable = doesLis
+                                  // bool isAvailable = messageController
+                                  //     .audioListMAp.value
+                                  //     .contains(data['id']);
+                                  // counter++;
+                                  // log('is avaialable isAvailable $isAvailable ');
+
+                                  // if (isAvailable == false) {
+
+                                  // if (data.isNotEmpty) {
+                                  //   messageController.audioListMAp.value.addAll;
+
+                                  //   messageController.audioListMAp.value.add({
+                                  // 'id': data['id'],
+                                  // 'audioUrl': data['text'],
+                                  // 'duration': duration,
+                                  // 'position': duration,
+                                  // 'play': false
+                                  // });
+
+                                  // }
+                                  // }
+                                  log(' Map lis of data ${messageController.activeAudioMap.value}');
+                                }
+
+                                /*
+                                  'audioUrl': data['text'],
+                                      'duration': duration,
+                                      'position': duration,
+                                      'play': false
+                                */
+
+                                /*
+                                 isPlaying == false
+                        ? await _audioPlayer.play(widget.audioUrl)
+                        : await _audioPlayer.pause();
+                        isPlaying ? Icons.pause : Icons.play_arrow
+
+                        ////
+                        return data['messageType'] == 'audio'
+                                    ? AudioPlayerWidget(
+                                        map: map,
+                                        audioUrl: data['text'],
+                                        duration: duration,
+                                        position: duration)
+                                */
+
+                                return data['messageType'] == 'audio'
+                                    ? Text('data')
+                                    //  AudioPlayerWidget(
+                                    //     icon: messageController
+                                    //             .audiomap.value['play']
+                                    //         ? Icons.pause
+                                    //         : Icons.play_arrow,
+                                    //     onTap: () {
+                                    //       // log('ontap working  ${data['id']}');
+                                    //       // log('map data is printing here ${messageController.audiomap}');
+                                    //       // messageController
+                                    //       //     .audioActivityList.value = [
+                                    //       //   messageController.audiomap
+                                    //       // ];
+                                    //       // messageController.activeAudio.value =
+                                    //       //     data['id'];
+
+                                    //       playPauseAudio(
+                                    //           messageController.audiomap.value
+
+                                    //           // messageController
+                                    //           //   .audiomap.value['audioUrl']
+                                    //           );
+                                    //     },
+                                    //     duration: messageController
+                                    //         .audiomap.value['duration'],
+                                    //     position: messageController
+                                    //         .audiomap.value['position'],
+                                    //   )
+                                    : ChatBubbleWidget(
+                                        imageUrl: data['photo'],
+                                        name: data['name'] ?? ' name',
+                                        isMe: data['email'] ==
+                                            con.currentUser?.email,
+                                        message: data['text'] ?? 'message',
+                                        time: dateString,
+                                      );
                               }).toList(),
                             ),
                           );
                         }
                         if (snapshot.hasError) {
-                          return Text('Something went wrong');
+                          return const Text('Something went wrong');
                         }
 
-                        return Center(child: LoaderWidget());
+                        return const Center(child: LoaderWidget());
                       },
                     ),
                     Column(
@@ -289,26 +485,21 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                                               StreamBuilder<
                                                   RecordingDisposition>(
                                                 builder: (context, snapshot) {
-                                                  final duration = snapshot
+                                                  Duration duration = snapshot
                                                           .hasData
                                                       ? snapshot.data!.duration
                                                       : Duration.zero;
 
-                                                  String twoDigits(int n) => n
-                                                      .toString()
-                                                      .padLeft(2, '0');
+                                                  int durationMilliseconds =
+                                                      duration.inMilliseconds;
 
-                                                  final twoDigitMinutes =
-                                                      twoDigits(duration
-                                                          .inMinutes
-                                                          .remainder(60));
-                                                  final twoDigitSeconds =
-                                                      twoDigits(duration
-                                                          .inSeconds
-                                                          .remainder(60));
+                                                  audioDuration =
+                                                      durationMilliseconds;
 
                                                   return Text(
-                                                    '$twoDigitMinutes:$twoDigitSeconds',
+                                                    AudioProvider
+                                                        .formatDuration(
+                                                            duration),
                                                     style: const TextStyle(
                                                       color: Colors.black,
                                                       fontSize: 12,
@@ -317,9 +508,8 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                                                     ),
                                                   );
                                                 },
-                                                // stream: recorder.onProgress,
+                                                stream: recorder.onProgress,
                                               ),
-                                              /*
                                               AudioWaveforms(
                                                 enableGesture: true,
                                                 size: Size(
@@ -346,7 +536,6 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                                                 margin: EdgeInsets.symmetric(
                                                     horizontal: 15.w),
                                               ),
-                                          */
                                             ],
                                           )
                                         : TextFormField(
@@ -377,12 +566,13 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                                                         builder: (builder) =>
                                                             bottomsheet());
                                                   },
-                                                  icon: Icon(Icons.attachment)),
+                                                  icon: const Icon(
+                                                      Icons.attachment)),
                                               contentPadding: EdgeInsets.all(5),
                                               hintText: Strings
                                                   .chating_search_hinttext,
-                                              hintStyle:
-                                                  TextStyle(color: Colors.grey),
+                                              hintStyle: const TextStyle(
+                                                  color: Colors.grey),
                                               alignLabelWithHint: true,
                                               border: InputBorder.none,
                                               prefixIcon: InkWell(
@@ -405,99 +595,155 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
                               const SizedBox(
                                 width: 12,
                               ),
-                              /*
                               isbutton
-                                  ?
-                             */
-                              InkWell(
-                                onTap: () async {
-                                  // add new collection----------------------------
+                                  ? InkWell(
+                                      onTap: () async {
+                                        if (_controller.text.isNotEmpty) {
+                                          _firebaseMethods.addCollection(
+                                              collectionPath: 'users',
+                                              docId: messageController.UserId,
+                                              msgCollectionPath: 'userChat',
+                                              documentMap: {
+                                                'messageType': 'text',
+                                                'id': messageController.UserId
+                                                    .toString(),
+                                                'name': currentUser
+                                                    .currentUser!.name
+                                                    .toString(),
+                                                'email': currentUser
+                                                    .currentUser!.email
+                                                    .toString(),
+                                                'text': _controller.text,
+                                                'photo': messageController
+                                                    .singleChatImage.value,
+                                                'time': Timestamp.now(),
+                                              });
 
-                                  if (_controller.text.isNotEmpty) {
-                                    fireStore
-                                        .collection('users')
-                                        .doc(messageController.otherUserId
-                                            .toString())
-                                        .collection('userChat')
-                                        .add({
-                                      'id': messageController.otherUserId
-                                          .toString(),
-                                      'name': currentUser.currentUser!.name
-                                          .toString(),
-                                      'email': currentUser.currentUser!.email
-                                          .toString(),
-                                      'text': _controller.text,
-                                      'photo': 'CurrentUserPhoto',
-                                      'time': Timestamp.now(),
-                                    });
+                                          // counter
 
-                                    // counter
+                                          var recentChat =
+                                              await fireBaseOtherUser
+                                                  .getUserCollectData(
+                                                      otherUserId:
+                                                          messageController
+                                                                  .UserId
+                                                              .toString(),
+                                                      collection:
+                                                          'recentChats');
+                                          // get  user fcmToken
+                                          var getUserCollection =
+                                              await fireBaseOtherUser
+                                                  .getUserCollectData(
+                                                      otherUserId:
+                                                          messageController
+                                                                  .UserId
+                                                              .toString(),
+                                                      collection: 'users');
+                                          var collectionRes =
+                                              await getUserCollection.data();
+                                          var UserFcmToken =
+                                              collectionRes['fcmToken'];
+                                          var userPhoto =
+                                              collectionRes['photoUrl'];
 
-                                    var recentChat =
-                                        await fireBaseOtherUser.otherUser(
-                                            otherUserId: messageController
-                                                .otherUserId
+                                          var messageCount = 1;
+                                          if (recentChat.data() != null) {
+                                            if (recentChat
+                                                    .data()?['isUserRead'] ==
+                                                false) {
+                                              messageCount = recentChat
+                                                  .data()?['userMessageCount'];
+                                              messageCount = messageCount + 1;
+                                            }
+                                          }
+
+                                          //recent chat of user
+                                          fireStore
+                                              .collection('recentChats')
+                                              .doc(messageController.UserId
+                                                  .toString())
+                                              .set({
+                                            'adminUid': currentUser
+                                                .currentUser?.uid
                                                 .toString(),
-                                            collection: 'recentChats');
+                                            'userUid': messageController.UserId
+                                                .toString(),
+                                            'adminMessageCount': 0,
+                                            'isAdminRead': false,
+                                            'lastMessage': _controller.text,
+                                            'userName': otherUserRes
+                                                .data()['name']
+                                                .toString(),
+                                            'photoUrl': userPhoto ?? '',
+                                            'userMessageCount': messageCount,
+                                            'isUserRead': false,
+                                            'time': Timestamp.now()
+                                          });
+                                          // Notification
 
-                                    await fireStore
-                                        .collection('recentChats')
-                                        .doc(messageController.otherUserId
-                                            .toString())
-                                        .get();
-
-                                    var messageCount = 1;
-                                    if (recentChat.data() != null) {
-                                      if (recentChat.data()?['isUserRead'] ==
-                                          false) {
-                                        messageCount = recentChat
-                                            .data()?['userMessageCount'];
-                                        messageCount = messageCount + 1;
-                                      }
-                                    }
-
-                                    //recent chat of user
-                                    fireStore
-                                        .collection('recentChats')
-                                        .doc(messageController.otherUserId
-                                            .toString())
-                                        .set({
-                                      'curentUid': currentUser.currentUser?.uid
-                                          .toString(),
-                                      'otherUid': messageController.otherUserId
-                                          .toString(),
-                                      'adminMessageCount': 0,
-                                      'isAdminRead': false,
-                                      'lastMessage': _controller.text,
-                                      'otherName': otherUserRes
-                                          .data()['name']
-                                          .toString(),
-                                      'photoUrl': 'photoUrl',
-                                      'userMessageCount': messageCount,
-                                      'isUserRead': false,
-                                      'time': Timestamp.now()
-                                    });
-                                    _controller.clear();
-                                  }
-                                },
-                                child: const CircleAvatar(
-                                  radius: 25,
-                                  child: Icon(Icons.send),
-                                ),
-                              )
-                              /*
-                                  : InkWell(
-                                      // onTap: _startOrStopRecording,
-                                      child: CircleAvatar(
-                                        radius: 22.r,
-                                        child: isRecording
-                                            ? Icon(Icons.send)
-                                            : Icon(
-                                                Icons.mic,
-                                              ),
+                                          LocalNotificationServices
+                                              .sendNotification(
+                                                  'nuovo messaggio',
+                                                  _controller.text,
+                                                  UserFcmToken ?? '');
+                                          _controller.clear();
+                                        }
+                                      },
+                                      child: const CircleAvatar(
+                                        radius: 25,
+                                        child: Icon(Icons.send),
                                       ),
                                     )
-                              */
+                                  : InkWell(
+                                      onTap: () {},
+                                      child: CircleAvatar(
+                                        radius: 22.r,
+                                        child: isRecording == true
+                                            ? IconButton(
+                                                onPressed: () async {
+                                                  await stopRecorder();
+
+                                                  await _firebaseMethods
+                                                      .addCollection(
+                                                          collectionPath:
+                                                              'users',
+                                                          docId:
+                                                              messageController
+                                                                  .UserId,
+                                                          msgCollectionPath:
+                                                              'userChat',
+                                                          documentMap: {
+                                                        'audioDuration':
+                                                            audioDuration,
+                                                        'messageType': 'audio',
+                                                        'id': messageController
+                                                            .UserId.toString(),
+                                                        'name': currentUser
+                                                            .currentUser!.name
+                                                            .toString(),
+                                                        'email': currentUser
+                                                            .currentUser!.email
+                                                            .toString(),
+                                                        'text': audioUrl,
+                                                        'photo':
+                                                            messageController
+                                                                .singleChatImage
+                                                                .value,
+                                                        'time': Timestamp.now(),
+                                                      });
+
+                                                  setState(() {});
+                                                },
+                                                icon: const Icon(Icons.send))
+                                            : IconButton(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    startRecord();
+                                                  });
+                                                },
+                                                icon: const Icon(Icons.mic)),
+                                      ),
+                                    )
                             ],
                           ),
                         ),
@@ -511,34 +757,9 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
     );
   }
 
-  /*
-  void _startOrStopRecording() async {
-    if (recorder.isRecording) {
-      await stopRecorder();
-      setState(() {});
-    } else {
-      await startRecord();
-      setState(() {});
-    }
-    if (isRecording) {
-      recorderController.reset();
-      await stopRecorder();
-      setState(() {});
-      if (path != null) {}
-    } else {
-      await recorderController.record(path);
-    }
-    setState(() {
-      isRecording = !isRecording;
-    });
-  }
- */
-
-/*
   void _refreshWave() {
     if (isRecording) recorderController.refresh();
   }
-*/
 
   Widget bottomsheet() {
     return Container(
@@ -693,277 +914,214 @@ class _AdminInputChatViewState extends State<AdminInputChatView> {
           )),
     );
   }
+
+// observer here
+/*
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async{
+    // TODO: implement didChangeAppLifecycleState
+    switch (state) {
+      case AppLifecycleState.resumed:
+        print("app in resumed");
+        //Play the Music
+        break;
+      case AppLifecycleState.inactive:
+        print("app in inactive");
+        //Stop the music
+        break;
+      case AppLifecycleState.paused:
+        print("app in paused");
+        await _audioPlayer.stop();
+        await  _audioPlayer.dispose();
+        break;
+      case AppLifecycleState.detached:
+        print("app in detached");
+        await _audioPlayer.stop();
+        await  _audioPlayer.dispose();
+        //Stop the music
+        break;
+    }
+  }
+*/
+
 }
-/*
- ListView(
-              physics: NeverScrollableScrollPhysics(),
-              children: [
-                ChatingAppBar(
-                  avator: InkWell(
-                      onTap: () {
-                        Get.to(Profile());
-                      },
-                      child: CircleAvatar(
-                        radius: Dimensions.fontSize12 * 2,
-                        child: Image.asset('assets/img.jpeg'),
-                      )),
-                  backbtn: Icon(
-                    Icons.arrow_back,
-                    color: IColor.mainBlueColor,
-                  ),
-                  backFunction: () {
-                    Get.to(BottomNavigationBarPage());
-                  },
-                  name: Strings.influencers,
-                  sufix1onpress: () {
-                    // Get.toNamed(Paths.voiceCall);
-                    Get.to(VoiceCall());
-                  },
-                  sufixicon1: const Icon(
-                    Icons.call,
-                    color: IColor.mainBlueColor,
-                  ),
-                  sufix2onpress: () {
-                    Get.toNamed(Paths.contattiVideoCall);
-                  },
-                  sufixicon2: ImageConstant.imgVideocamera,
-                  sufixicon3: Icon(
-                    Icons.more_vert,
-                    color: IColor.mainBlueColor,
-                  ),
-                ),
-                Container(
-                  height: Get.size.height,
-                  width: double.infinity,
-                  child: Column(
-                    children: [
-                      CommonText(
-                        title: Strings.oggi,
-                        color: IColor.grey_color,
-                        size: Dimensions.fontSize12,
-                      ),
-                      Row(
-                        textDirection: TextDirection.rtl,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: Dimensions.sizedboxWidth8,
-                          ),
-                          CircleAvatar(
-                            child: Image.asset('assets/img.jpeg'),
-                          ),
-                          SizedBox(
-                            width: Dimensions.sizedboxWidth8,
-                          ),
-                          Container(
-                              decoration: BoxDecoration(
-                                  color: IColor.mainBlueColor,
-                                  borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(
-                                          Dimensions.fontSize14),
-                                      bottomLeft: Radius.circular(
-                                          Dimensions.fontSize14),
-                                      bottomRight: Radius.circular(
-                                          Dimensions.fontSize14))),
-                              width: Dimensions.width250,
-                              height: Dimensions.height200,
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: Dimensions.height6),
-                                    child: CommonText(
-                                      title:
-                                          'orem Ipsum is simply dummy text of the printing',
-                                      color: IColor.colorWhite,
-                                      size: Dimensions.fontSize12,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: Dimensions.padding8,
-                                  ),
-                                  Image.asset(
-                                    'assets/images/perking.png',
-                                    width: Dimensions.height265,
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: Dimensions.height6,
-                                        vertical: Dimensions.padding8),
-                                    child: Align(
-                                        alignment: Alignment.topRight,
-                                        child: CommonText(
-                                          title: '12:20 am',
-                                          color: IColor.colorWhite,
-                                          size: Dimensions.fontSize12,
-                                        )),
-                                  ),
-                                ],
-                              ))
-                        ],
-                      ),
-                      Padding(
-                        padding:
-                            EdgeInsets.only(right: Dimensions.fontSize25 * 2),
-                        child: Align(
-                            alignment: Alignment.topRight,
-                            child: CommonText(
-                              title: 'seen',
-                              color: IColor.grey_color,
-                              size: Dimensions.fontSize12,
-                            )),
-                      )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-*/
-/// chat module of ready
-/*
-    StreamBuilder(
-                stream: fireStore
-                    .collection('users')
-                    .doc(widget.userId)
-                    .collection('UsersChat')
-                    .orderBy('time', descending: false)
-                    .snapshots(),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.hasData) {
-                    return Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 15),
-                        reverse: true,
-                        shrinkWrap: true,
-                        scrollDirection: Axis.vertical,
-                        children: snapshot.data!.docs.reversed
-                            .map((DocumentSnapshot document) {
-                          Map<String, dynamic> data =
-                              document.data() as Map<String, dynamic>;
 
-                          DateTime dateTime = data["time"].toDate();
-                          final dateString =
-                              DateFormat('yyyy-MM-dd hh:mm').format(dateTime);
-                          devtools.log("Data time $dateString");
-                          return Text(data['text']);
-                          // MessageBubble(
-                          //   chatImageUrl: data['BannerImage'] ?? '',
-                          //   myDate:dateString,
-                          //   isME:" loggedinUser.email == data['sender']",
-                          //   userEmail: data['sender'],
-                          //   userText: data['text'] ?? '',
-                          // );
-                        }).toList(),
-                      ),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return Text('Something went wrong');
-                  }
+class AudioPlayerWidget extends StatelessWidget {
+  AudioPlayerWidget({
+    Key? key,
+    // required this.audioUrl,
+    required this.duration,
+    required this.position,
+    required this.onTap,
+    required this.icon,
+  });
 
-                  return Text("Loading");
-                },
-              ),
-*/
-
-class MessageBubble extends StatelessWidget {
-  MessageBubble(
-      {required this.userEmail,
-      this.userText,
-      required this.isME,
-      required this.myDate,
-      this.chatImageUrl});
-  String myDate;
-  var userText;
-  String userEmail;
-  bool isME;
-  var chatImageUrl;
+  Duration duration;
+  Duration position;
+  VoidCallback onTap;
+  IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(10),
+    return Container(
+      margin: const EdgeInsets.only(left: 50),
+      // width: 100,
+      color: Colors.pink,
       child: Column(
-        crossAxisAlignment:
-            isME ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Text(
-            userEmail,
+          Row(
+            children: [
+              IconButton(
+                  onPressed: () {
+                    onTap();
+                  },
+                  icon: Icon(icon)),
+              Slider(
+                min: 0,
+                max: duration.inSeconds.toDouble(),
+                value: position.inSeconds.toDouble(),
+                onChanged: (double value) async {
+                  final pos = Duration(seconds: value.toInt());
+                  log('pos of audio player');
+                  // await _audioPlayer.seek(pos);
+                },
+              ),
+            ],
           ),
-          //------------------------------------
-          if (chatImageUrl == '') ...[
-            Material(
-              borderRadius: isME
-                  ? BorderRadius.only(
-                      bottomRight: Radius.circular(30),
-                      bottomLeft: Radius.circular(30),
-                      topLeft: Radius.circular(30),
-                    )
-                  : BorderRadius.only(
-                      bottomRight: Radius.circular(30),
-                      bottomLeft: Radius.circular(30),
-                      topRight: Radius.circular(30)),
-              elevation: 5,
-              color: isME ? Colors.lightBlueAccent : Colors.white,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Text(
-                  userText,
-                  style: TextStyle(
-                      color: isME ? Colors.white : Colors.black54,
-                      fontSize: 15),
-                ),
-              ),
-            ),
-          ] else if (userText == '') ...[
-            GestureDetector(
-              onTap: () {
-                print('Button pressed');
-                showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return Container(
-                        width: 300,
-                        height: 300,
-                        // child: CachedNetworkImage(
-                        //   fit: BoxFit.cover,
-                        //   imageUrl: chatImageUrl,
-                        //   placeholder: (context, url) =>
-                        //   const Center(child: CircularProgressIndicator()),
-                        //   errorWidget: (context, url, error) =>
-                        //   const Icon(Icons.error),
-                        // ),
-                      );
-                    });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.blueAccent, width: 3),
-                ),
-                height: 300,
-                width: 200,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(25),
-                  // child: CachedNetworkImage(
-                  //   fit: BoxFit.cover,
-                  //   imageUrl: chatImageUrl,
-                  //   placeholder: (context, url) =>
-                  //   const Center(child: CircularProgressIndicator()),
-                  //   errorWidget: (context, url, error) =>
-                  //   const Icon(Icons.error),
-                  // ),
-                ),
-              ),
-            ),
-          ],
-//---------------------------------------
-
-          Text(myDate)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text(AudioProvider.formatDuration(position)),
+              Text(AudioProvider.formatDuration(duration - position)),
+            ],
+          ),
         ],
       ),
     );
   }
 }
+
+/*
+
+class AudioPlayerWidget extends StatefulWidget {
+  AudioPlayerWidget(
+      {Key? key,
+      required this.audioUrl,
+      required this.duration,
+      required this.position,
+      required this.map});
+
+  String audioUrl;
+  Duration duration;
+  Duration position;
+  Map map;
+
+  @override
+  State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+  final player.AudioPlayer _audioPlayer = player.AudioPlayer();
+  List audioPlayerList = [];
+  late final player.AudioPlayer currentAudioPlayer;
+
+  bool isPlaying = false;
+  @override
+  void initState() {
+    // currentAudioPlayer = player.AudioPlayer();
+
+    _audioPlayer.onPlayerStateChanged.listen((event) {
+      setState(() {
+        isPlaying = event == player.PlayerState.PLAYING;
+      });
+    });
+
+    _audioPlayer.onDurationChanged.listen((event) {
+      setState(() {
+        widget.duration = event;
+        log('duration change::$event');
+      });
+    });
+    _audioPlayer.onAudioPositionChanged.listen((event) {
+      setState(() {
+        log('audio position::$event');
+        widget.position = event;
+      });
+    });
+    // TODO: implement initState
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
+    // TODO: implement dispose
+    super.dispose();
+  }
+
+  playStop({String playerUrl = ''}) {
+    if (audioPlayerList.isEmpty) {
+      audioPlayerList.add({_audioPlayer.play(playerUrl): true});
+    } else {
+      audioPlayerList.clear();
+      audioPlayerList.add({_audioPlayer.play(playerUrl): true});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 50),
+      // width: 100,
+      color: Colors.pink,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                  onPressed: () async {
+
+                    log('map data ${widget.map}');
+                    // playStop(playerUrl: widget.audioUrl);
+                    // if (isPlaying == false) {
+                    //   final paly = await _audioPlayer.play(widget.audioUrl);
+                    //   log('play variable::$paly');
+                    // } else {
+                    //   final pause = await _audioPlayer.pause();
+                    //   log(' variable::$pause');
+                    // }
+
+                    // isPlaying == false
+                    //     ? await _audioPlayer.play(widget.audioUrl)
+                    //     : await _audioPlayer.pause();
+                  },
+                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow)),
+              Slider(
+                min: 0,
+                max: widget.duration.inSeconds.toDouble(),
+                value: widget.position.inSeconds.toDouble(),
+                onChanged: (double value) async {
+                  final pos = Duration(seconds: value.toInt());
+                  log('pos of audio player');
+                  await _audioPlayer.seek(pos);
+                },
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text(AudioProvider.formatDuration(widget.position)),
+              Text(AudioProvider.formatDuration(
+                  widget.duration - widget.position)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+*/
+
+

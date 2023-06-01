@@ -74,8 +74,9 @@ class _AdminSingleChatUserListViewState
                         ? const SizedBox()
                         : ContattiUserCard(
                             onTap: () {
-                              history.otherUserId = controller
-                                  .firbaseUsersList[index].uid.toString();
+                              history.UserId = controller
+                                  .firbaseUsersList[index].uid
+                                  .toString();
                               Get.to(AdminInputChatView());
                             },
                             name: controller.firbaseUsersList[index].name,

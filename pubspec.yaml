@@ -64,7 +64,8 @@ dependencies:
   fast_contacts: ^1.1.1
   share_plus: any
   record: ^4.4.3
-  audioplayers: ^1.1.1
+  audioplayers: ^0.20.1
+  
   flutter_audio_recorder2: ^0.0.2
   flutter_contacts: ^1.1.5
   google_maps_flutter: ^2.2.0
@@ -78,6 +79,9 @@ dependencies:
   firebase_messaging: ^14.2.3
   flutter_local_notifications: ^9.7.0
   firebase_auth: ^4.4.0
+  timeago: ^3.3.0
+  cached_network_image: ^3.2.3
+  firebase_dynamic_links: ^5.1.0
 
 dev_dependencies:
   flutter_test:

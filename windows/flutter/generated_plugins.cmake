@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  audioplayers_windows
   emoji_picker_flutter
   geolocator_windows
   permission_handler_windows

@@ -34,7 +34,7 @@ import '../admin_module/two_way_channel/view/widgets/twoway_chating_videocall.da
 import '../admin_module/welcome/welcome.dart';
 import '../userModule/profile/view/widget/notification.dart';
 
-class AppPages {
+ class AppPages {
   static const INITIAL = Routes.HOME;
 
   static final routes = [
@@ -70,10 +70,10 @@ class AppPages {
         name: Paths.user_Setting,
         page: () => const UserNotification(),
         transition: Transition.fadeIn),
-    GetPage(
-        name: Paths.mobileContact,
-        page: () => MobileContact(),
-        transition: Transition.fadeIn),
+    // GetPage(
+    //     name: Paths.mobileContact,
+    //     page: () => MobileContact(),
+    //     transition: Transition.fadeIn),
     GetPage(
         name: Paths.adminInputChatView,
         page: () => AdminInputChatView(),
@@ -192,5 +192,14 @@ class AppPages {
         name: Paths.adminSingleChatUserListView,
         page: () => AdminSingleChatUserListView(),
         transition: Transition.fadeIn),
+    GetPage(
+        name: Paths.adminInputGroupChatView,
+        page: () => AdminInputGroupView(),
+        transition: Transition.fadeIn),
   ];
+  void navigateToHomePage() {
+    Get.offAll((route) =>
+        route.settings.name == Paths.bottomNavigationBarPage ||
+        route.settings.name == Paths.adminInputGroupChatView);
+  }
 }

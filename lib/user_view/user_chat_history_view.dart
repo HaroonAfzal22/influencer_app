@@ -1,8 +1,11 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:influencer/admin_module/admin_archived/view/component/search_bar.dart';
+import 'package:influencer/admin_module/mobile_contact/mobile_contact.dart';
+import 'package:influencer/admin_module/profile/profile_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/model/two_way_modelclass.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/card_layout.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
@@ -23,6 +26,7 @@ import '../admin_module/two_way_channel/chat_history_card_widget.dart';
 class UserChatView extends StatelessWidget {
   final con = Get.find<CurrentUserController>();
   final userController = Get.find<MessageController>();
+
   final fireStore = FirebaseFirestore.instance;
   @override
   Widget build(BuildContext context) {
@@ -44,7 +48,11 @@ class UserChatView extends StatelessWidget {
                         ? Get.toNamed(Paths.fireBaseUsersView)
                         :
                 */
-                    Get.toNamed(Paths.mobileContact);
+                    Get.to(
+                      const MobileContact(
+                        isArrowIcon: true,
+                      ),
+                    );
                   },
                   child: SvgPicture.asset(ImageConstant.edit_img)),
               PopupMenuButton(
@@ -78,7 +86,11 @@ class UserChatView extends StatelessWidget {
                 },
                 onSelected: (item) {
                   if (item == 1) {
-                    Get.toNamed(Paths.contactListAdminStartChannel);
+                    Get.to(
+                      const MobileContact(
+                        isArrowIcon: true,
+                      ),
+                    );
                   } else if (item == 2) {
                     Get.toNamed(Paths.contactList);
                   } else if (item == 3) {
@@ -115,7 +127,7 @@ class UserChatView extends StatelessWidget {
                 ),
                 userController.userHistoryList.isEmpty
                     ? const Center(
-                        child: Text('You did\'nt ve any chat history'))
+                        child: Text('Non hai alcuna cronologia chat.'))
                     : Expanded(
                         child: Obx(() => ListView.builder(
                             scrollDirection: Axis.vertical,
@@ -126,16 +138,18 @@ class UserChatView extends StatelessWidget {
 
                               if (con.currentUser?.uid ==
                                   userController
-                                      .userHistoryList[index].otherUid) {
+                                      .userHistoryList[index].userUid) {
                                 return GestureDetector(
                                   onTap: () {
-                                    userController.adminUserID =
-                                        con.currentUser!.uid.toString();
+                                    log('image url ${ref.photoUrl.toString()}');
+                                    userController.adminUid =
+                                        ref.adminUid.toString();
+
                                     Get.toNamed(Paths.userInputChatView);
                                     if (ref.isAdminRead == false) {
                                       fireStore
                                           .collection('recentChats')
-                                          .doc(ref.otherUid)
+                                          .doc(ref.userUid)
                                           .update({
                                         'isUserRead': true,
                                         'userMessageCount': 0
@@ -143,10 +157,12 @@ class UserChatView extends StatelessWidget {
                                     }
                                   },
                                   child: ChatHistoryCardWidget(
+                                    image: '',
+                                    // image: ref.photoUrl,
                                     isRead: ref.isUserRead,
                                     messageCount: ref.userMessageCount,
                                     messgae: ref.message.toString(),
-                                    sender: ref.otherName.toString(),
+                                    sender: 'Admin',
                                     time: ref.time,
                                   ),
                                 );

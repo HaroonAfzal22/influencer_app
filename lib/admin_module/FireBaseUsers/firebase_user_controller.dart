@@ -4,10 +4,15 @@ import 'package:get/get.dart';
 import 'package:influencer/admin_module/FireBaseUsers/firebase_user_modal.dart';
 import 'dart:developer' as devtools show log;
 
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
+
 class FireBaseUsersController extends GetxController {
+   final aGroupController = Get.put(AdminGroupChatController());
   TextEditingController messageController = TextEditingController();
 
   RxList<UsersListModal> firbaseUsersList = RxList(<UsersListModal>[]);
+  
+  List selectedIndices = [].obs.toList();
 
   late CollectionReference collectionReference;
 
@@ -19,6 +24,7 @@ class FireBaseUsersController extends GetxController {
     super.onInit();
 
     collectionReference = FirebaseFirestore.instance.collection('users');
+
     firbaseUsersList.bindStream(getAllRegisterUsers());
   }
 }

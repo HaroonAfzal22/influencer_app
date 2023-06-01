@@ -1,329 +1,366 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:influencer/admin_module/FireBaseUsers/firebase_user_controller.dart';
+import 'package:influencer/FirebaseServices/dynamic_links.dart';
+import 'package:influencer/FirebaseServices/firebase_auth.dart';
 import 'package:influencer/admin_module/archiviazione/view/contact_listAdmin_startchannel.dart';
+import 'package:influencer/admin_module/profile/image_view.dart';
+import 'package:influencer/admin_module/profile/profile_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/routes/app_routes.dart';
 import 'package:influencer/userModule/profile/view/widget/notification.dart';
+import 'package:influencer/util/LoadingWidget.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/string.dart';
 import 'package:share_plus/share_plus.dart';
-
+import 'package:timeago/timeago.dart' as timeago;
+import '../../Helper/shared_pre_const.dart';
 import '../../util/color.dart';
 import '../admin_archived/view/component/googlemap.dart';
+import 'package:path/path.dart' as path;
 
 class Profile extends StatefulWidget {
-  Profile({Key? key, this.city, this.country}) : super(key: key);
-  double? country;
-  double? city;
+  Profile({
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<Profile> createState() => _ProfileState();
 }
 
 class _ProfileState extends State<Profile> {
-  final controller = Get.put(CurrentUserController());
+  final currentController = Get.put(CurrentUserController());
+
   File? imageFile;
+  String imageUrl = '';
+  String fileName = '';
+  PickedFile? pickedImage;
 
   var subadminstrationarea = '';
   var country = '';
+  SharedPrefsHelper helper = SharedPrefsHelper();
 
-  getCity() async {
-    List<Placemark> address = await placemarkFromCoordinates(
-        double.parse(widget.country.toString()),
-        double.parse(widget.city.toString()));
-    setState(() {
-      country = address.last.country.toString();
-      subadminstrationarea = address.last.subAdministrativeArea.toString();
-    });
+  final proController = Get.find<ProfileController>();
+  bool loader = false;
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getDocumentStream(
+      String docId) {
+    final docRef = FirebaseFirestore.instance.collection('users').doc(docId);
+    return docRef.snapshots();
   }
 
   @override
   void initState() {
+    // myInit();
+    helper.getSharedData();
     // TODO: implement initState
     super.initState();
-    getCity();
+  }
+
+  FirebaseStorage storage = FirebaseStorage.instance;
+
+  Future<void> _selectPicture(String inputSource) async {
+    final picker = ImagePicker();
+
+    pickedImage = await picker.getImage(
+      source:
+          inputSource == 'camera' ? ImageSource.camera : ImageSource.gallery,
+      maxWidth: Dimensions.width190,
+      maxHeight: Dimensions.height90 * 2,
+    );
+
+    fileName = path.basename(pickedImage!.path);
+    imageFile = File(pickedImage!.path);
+
+    var w = await Get.to(ImageView(
+      imageFile: imageFile,
+      fileName: fileName,
+      imageUrl: imageUrl,
+      pickedImage: pickedImage,
+      collection: 'users',
+      docId: currentController.currentUser?.uid ?? '',
+      field: 'photoUrl',
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        backgroundColor: IColor.colorWhite,
-        appBar: AppBar(
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          surfaceTintColor: Colors.white,
-          title: const Text(
-            Strings.profile,
-            style: TextStyle(color: IColor.colorblack),
-          ),
-          actions: [
-            GestureDetector(
-              onTap: () async {
-                print('data');
-                await FirebaseAuth.instance.signOut();
+    return WillPopScope(
+      onWillPop: () => onbackpress(context),
+      child: loader == true
+          ? const LoaderWidget()
+          : Scaffold(
+              backgroundColor: IColor.colorWhite,
+              appBar: AppBar(
+                centerTitle: true,
+                automaticallyImplyLeading: false,
+                backgroundColor: Colors.white,
+                elevation: 0,
+                surfaceTintColor: Colors.white,
+                title: const Text(
+                  Strings.profile,
+                  style: TextStyle(color: IColor.colorblack),
+                ),
+                actions: [
+                  GestureDetector(
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                      helper.sharedPreferences.remove(helper.userId);
 
-                Get.offAllNamed(AppPages.INITIAL);
-              },
-              child: SignOutWidget(),
-            )
-          ],
-        ),
-        body: SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              height: Get.size.height,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.transparent,
-                      radius: 40.r,
-                      child: InkWell(
-                        onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            builder: (context) => bottomsheet(context),
-                            backgroundColor: Colors.white,
-                          );
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.transparent,
-                          radius: 40.r,
-                          child: CircleAvatar(
-                            radius: Dimensions.height60,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                  Dimensions.containerHeight65),
-                              child: imageFile == null
-                                  ? Image.asset(
-                                      'assets/images/person1.png',
-                                      width: Dimensions.height135,
-                                      height: Dimensions.height135,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.file(
-                                      imageFile!,
-                                      width: Dimensions.height135,
-                                      height: Dimensions.height120,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    Text(
-                      controller.currentUser!.name.toString(),
-                      style: TextStyle(
-                          fontFamily: 'Poppins-Bold.ttf',
-                          fontSize: Dimensions.fontSize22,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(
-                      height: 5.h,
-                    ),
-                    Text(
-                      'Iscritto 3 anni fa',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontFamily: 'Poppins-Bold.ttf',
-                        fontSize: Dimensions.textsize15,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 8.h,
-                    ),
-                    //  Text(subadminstrationarea),
-                    GestureDetector(
-                      onTap: () {
-                        Get.offNamed(Paths.setLocation);
-                      },
-                      child: Container(
-                        // width: 160.w,
-                        // height: 30.h,
-                        // decoration: BoxDecoration(
-                        //     borderRadius: BorderRadius.circular(12),
-                        //     border: Border.all(color:Colors.black.withOpacity(0.5), width: 0.2),
-                        //     color: IColor.mainBlueColor.withOpacity(0.1)),
-                        child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                subadminstrationarea,
-                              ),
-                              SizedBox(
-                                width: 6.w,
-                              ),
-                              Text(
-                                country,
-                              ),
-
-                              SizedBox(
-                                width: 6.w,
-                              ),
-                              // Align(
-                              //     alignment: Alignment.centerRight,
-                              //     child: Icon(Icons.keyboard_arrow_down_rounded))
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(
-                      height: 20.h,
-                    ),
-                    Container(
-                      width: Get.size.width - 30.w,
-                      height: 80.h,
-                      decoration: BoxDecoration(
-                        color: IColor.mainBlueColor,
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(17.r),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      Get.offAllNamed(AppPages.INITIAL);
+                    },
+                    child: SignOutWidget(),
+                  )
+                ],
+              ),
+              body: SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    height: Get.size.height,
+                    child: SingleChildScrollView(
+                      child: Column(
                         children: [
-                          Padding(
-                            padding: EdgeInsets.only(
-                                top: Dimensions.fontSize20,
-                                left: Dimensions.fontSize20),
-                            child: Column(
+                          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                            stream: getDocumentStream(
+                                currentController.currentUser?.uid ?? ''),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              }
+                              if (!snapshot.hasData) {
+                                return CircularProgressIndicator();
+                              }
+                              final docSnapshot = snapshot.data!;
+                              final data = docSnapshot.data();
+
+                              return Column(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: Colors.transparent,
+                                    radius: 40.r,
+                                    child: InkWell(
+                                      onTap: () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          builder: (context) =>
+                                              bottomsheet(context),
+                                          backgroundColor: Colors.white,
+                                        );
+                                      },
+                                      child: CircleAvatar(
+                                        // backgroundColor: Colors.transparent,
+                                        radius: 40.r,
+                                        child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                                Dimensions.containerHeight65),
+                                            child: data?['photoUrl'] == ''
+                                                ? Image.asset(
+                                                    'assets/images/person1.png',
+                                                    width: Dimensions.height135,
+                                                    height:
+                                                        Dimensions.height135,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Image.network(
+                                                    fit: BoxFit.cover,
+                                                    data?['photoUrl']
+                                                            .toString() ??
+                                                        '',
+                                                  )),
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    currentController.currentUser!.name
+                                        .toString(),
+                                    style: TextStyle(
+                                        fontFamily: 'Poppins-Bold.ttf',
+                                        fontSize: Dimensions.fontSize22,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(
+                                    height: 5.h,
+                                  ),
+                                  Text(
+                                    timeago.format(
+                                        currentController.currentUser?.time),
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontFamily: 'Poppins-Bold.ttf',
+                                      fontSize: Dimensions.textsize15,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 8.h,
+                                  ),
+                                  //  Text(subadminstrationarea),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Get.toNamed(Paths.user_Setting);
+                                    },
+                                    child: Container(
+                                      child: Center(
+                                          child: Text(data?['Location'] == ''
+                                              ? 'Imposta la tua posizione'
+                                              : data?['Location'])),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                          SizedBox(
+                            height: 20.h,
+                          ),
+                          Container(
+                            width: Get.size.width - 30.w,
+                            height: 80.h,
+                            decoration: BoxDecoration(
+                              color: IColor.mainBlueColor,
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(17.r),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  '210.901',
-                                  style: TextStyle(
-                                      fontSize: Dimensions.fontSize20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      top: Dimensions.fontSize20,
+                                      left: Dimensions.fontSize20),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '210.901',
+                                        style: TextStyle(
+                                            fontSize: Dimensions.fontSize20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white),
+                                      ),
+                                      SizedBox(
+                                        height: Dimensions.fontSize20,
+                                      ),
+                                      const Text(
+                                        'Punteggio',
+                                        style: TextStyle(color: Colors.white),
+                                      )
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  height: Dimensions.fontSize20,
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      top: Dimensions.paddingLeft10,
+                                      bottom: Dimensions.paddingLeft10,
+                                      left: Dimensions.height30),
+                                  child: const VerticalDivider(
+                                    thickness: 2,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                                const Text(
-                                  'Punteggio',
-                                  style: TextStyle(color: Colors.white),
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      top: Dimensions.fontSize20,
+                                      left: Dimensions.fontsize30),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '10.256',
+                                        style: TextStyle(
+                                            fontSize: Dimensions.fontSize20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white),
+                                      ),
+                                      SizedBox(
+                                        height: Dimensions.fontSize20,
+                                      ),
+                                      const Text(
+                                        'Followers totali',
+                                        style: TextStyle(color: Colors.white),
+                                      )
+                                    ],
+                                  ),
                                 )
                               ],
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.only(
-                                top: Dimensions.paddingLeft10,
-                                bottom: Dimensions.paddingLeft10,
-                                left: Dimensions.height30),
-                            child: const VerticalDivider(
-                              thickness: 2,
-                              color: Colors.white,
+                          SizedBox(
+                            height: 17.h,
+                          ),
+                          Container(
+                            width: Get.size.width - 30.w,
+                            height: Dimensions.height65,
+                            decoration: BoxDecoration(
+                              color: const Color(0xff7BD85A),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(Dimensions.paddingLeft10),
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () async {
+                                String generatedDynamicLink =
+                                    await CreateDynamicLink.createDynamicLink();
+                                Share.share(generatedDynamicLink,
+                                    subject: 'Share with your Friends');
+                              },
+                              child: const Center(
+                                child: Text(
+                                  'Condividi il tuo codice invito',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.only(
-                                top: Dimensions.fontSize20,
-                                left: Dimensions.fontsize30),
-                            child: Column(
-                              children: [
-                                Text(
-                                  '10.256',
-                                  style: TextStyle(
-                                      fontSize: Dimensions.fontSize20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                SizedBox(
-                                  height: Dimensions.fontSize20,
-                                ),
-                                const Text(
-                                  'Followers totail',
-                                  style: TextStyle(color: Colors.white),
-                                )
-                              ],
-                            ),
-                          )
+                          SizedBox(
+                            height: 15.h,
+                          ),
+                          UserProfileSettingBtn(
+                              title: 'Il mio account',
+                              icon: Icons.edit_note_outlined,
+                              onpress: () {
+                                Get.toNamed(Paths.user_Setting);
+                              }),
+                          SizedBox(
+                            height: 10.h,
+                          ),
+                          UserProfileSettingBtn(
+                              title: Strings.notifiche,
+                              icon: Icons.notifications_none_outlined,
+                              onpress: () {
+                                Get.to(UserNotification());
+                              }),
+                          SizedBox(
+                            height: 10.h,
+                          ),
+                          UserProfileSettingBtn(
+                              title: "Archiviazione",
+                              icon: Icons.file_copy_outlined,
+                              onpress: () {
+                                Get.to(Archiviazione(),
+                                    transition: Transition.fadeIn);
+                              }),
+                          SizedBox(
+                            height: 10.h,
+                          ),
+                          UserProfileSettingBtn(
+                              title: "FAQ",
+                              icon: Icons.question_answer_outlined,
+                              onpress: () {}),
                         ],
                       ),
                     ),
-                    SizedBox(
-                      height: 17.h,
-                    ),
-                    Container(
-                      width: Get.size.width - 30.w,
-                      height: Dimensions.height65,
-                      decoration: BoxDecoration(
-                        color: Color(0xff7BD85A),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(Dimensions.paddingLeft10),
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          Share.share("https://www.google.com/");
-                        },
-                        child: const Center(
-                          child: Text(
-                            'Condividi il tuo codice invito',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 15.h,
-                    ),
-                    UserProfileSettingBtn(
-                        title: "ii mio account",
-                        icon: Icons.edit_note_outlined,
-                        onpress: () {
-                          Get.toNamed(Paths.user_Setting);
-                        }),
-                    SizedBox(
-                      height: 10.h,
-                    ),
-                    UserProfileSettingBtn(
-                        title: Strings.notifiche,
-                        icon: Icons.notifications_none_outlined,
-                        onpress: () {
-                          // Get.toNamed(Paths.userNotification);
-                          Get.to(UserNotification());
-                        }),
-                    SizedBox(
-                      height: 10.h,
-                    ),
-                    UserProfileSettingBtn(
-                        title: "Archiviazione",
-                        icon: Icons.file_copy_outlined,
-                        onpress: () {
-                          Get.to(Archiviazione(),
-                              transition: Transition.fadeIn);
-                        }),
-                    SizedBox(
-                      height: 10.h,
-                    ),
-                    UserProfileSettingBtn(
-                        title: "FAQ",
-                        icon: Icons.question_answer_outlined,
-                        onpress: () {}),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ));
+              )),
+    );
   }
 
   Widget bottomsheet(BuildContext context) {
@@ -353,7 +390,7 @@ class _ProfileState extends State<Profile> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.image,
                       color: Colors.blue,
                     ),
@@ -370,8 +407,8 @@ class _ProfileState extends State<Profile> {
                   ],
                 ),
                 onTap: () {
-                  print("Gallery");
-                  _getFromGallery();
+                  _selectPicture('gallery');
+                  Get.back();
                 },
               ),
               SizedBox(
@@ -397,9 +434,9 @@ class _ProfileState extends State<Profile> {
                 ),
                 onTap: () {
                   print("Camera");
-                  // takePhoto(ImageSource.camera);
-                  //takeFromCamera();
-                  _getFromCamera();
+
+                  _selectPicture('camera');
+                  Get.back();
                 },
               )
             ],
@@ -454,7 +491,7 @@ class SignOutWidget extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       child: const Center(
           child: Text(
-        'disconnessione',
+        'LogOut',
         style: TextStyle(fontWeight: FontWeight.bold),
       )),
     );
@@ -555,3 +592,29 @@ class TextField {
     );
   }
 }
+
+Future<bool> onbackpress(BuildContext context) async {
+  bool exitApp = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('close app'),
+          content: const Text('Do want to close app '),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+                child: const Text('No')),
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('Yes')),
+          ],
+        );
+      });
+  return exitApp ?? false;
+}
+
+// image view

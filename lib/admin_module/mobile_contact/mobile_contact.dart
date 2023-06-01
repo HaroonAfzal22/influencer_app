@@ -15,7 +15,8 @@ import 'dart:developer' as devtools show log;
 import 'package:share_plus/share_plus.dart';
 
 class MobileContact extends StatefulWidget {
-  const MobileContact({super.key});
+  final bool isArrowIcon;
+  const MobileContact({super.key, required this.isArrowIcon});
 
   @override
   State<MobileContact> createState() => _MobileContactState();
@@ -53,16 +54,16 @@ class _MobileContactState extends State<MobileContact> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          // leading:
-          //  IconButton(
-          //     onPressed: () {
-          //       Get.back();
-          //     },
-          //     icon: const Icon(
-          //       Icons.arrow_back,
-          //       color: IColor.colorblack,
-          //     )
-          //     ),
+          leading: widget.isArrowIcon == true
+              ? IconButton(
+                  onPressed: () {
+                    Get.back();
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: IColor.colorblack,
+                  ))
+              : const SizedBox(),
           backgroundColor: IColor.colorWhite,
           elevation: 0,
           title: const Padding(
@@ -86,7 +87,7 @@ class _MobileContactState extends State<MobileContact> {
             padding: REdgeInsets.all(8.0),
             child: ListTile(
                 onTap: () {
-                 /*
+                  /*
                   Get.to(AdminInputGroupView(
                     user: TwoWayUserModel(
                         id: 1,

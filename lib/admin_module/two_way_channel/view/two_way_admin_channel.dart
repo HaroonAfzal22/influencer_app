@@ -9,14 +9,17 @@ import 'package:influencer/FirebaseMessage/single_chat_history_controller.dart';
 import 'package:influencer/admin_module/admin_archived/view/component/search_bar.dart';
 import 'package:influencer/admin_module/btm_nav_profile/model/Profile_message.dart';
 import 'package:influencer/admin_module/contactti/view/widget/admin_input_chat_view.dart';
+import 'package:influencer/admin_module/profile/profile_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/chat_history_card_widget.dart';
 import 'package:influencer/admin_module/two_way_channel/model/two_way_modelclass.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/card_layout.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/util/LoadingWidget.dart';
 import 'package:influencer/util/color.dart';
 import 'package:influencer/util/commonText.dart';
+import 'package:influencer/util/comon_widgets.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/image_const.dart';
 import 'package:influencer/util/string.dart';
@@ -26,6 +29,7 @@ import 'package:intl/intl.dart';
 //     Navigator.pushReplacementNamed(context, "screen2");
 
 class TwoWayUserChannel extends StatelessWidget {
+  final proController = Get.find<ProfileController>();
   final con = Get.find<CurrentUserController>();
   final userController = Get.find<MessageController>();
   final fireStore = FirebaseFirestore.instance;
@@ -91,7 +95,7 @@ class TwoWayUserChannel extends StatelessWidget {
                   if (item == 1) {
                     Get.toNamed(Paths.contactListAdminStartChannel);
                   } else if (item == 2) {
-                    Get.toNamed(Paths.contactList);
+                    Get.toNamed(Paths.fireBaseUsersView);
                   } else if (item == 3) {
                     Get.toNamed(Paths.canaliEsistentiScreen);
                   } else if (item == 4) {
@@ -124,44 +128,50 @@ class TwoWayUserChannel extends StatelessWidget {
                     ],
                   ),
                 ),
-                userController.userHistoryList.isEmpty
-                    ? const Center(
-                        child: Text('You did\'nt ve any chat history'))
-                    : Expanded(
-                        child: Obx(() => ListView.builder(
-                            scrollDirection: Axis.vertical,
-                            shrinkWrap: true,
-                            itemCount: userController.userHistoryList.length,
-                            itemBuilder: (context, index) {
-                              var ref = userController.userHistoryList[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  userController.otherUserId =
-                                      ref.otherUid.toString();
-                                  Get.toNamed(Paths.adminInputChatView);
-                                  // if (ref.isAdminRead == false) {
-                                  fireStore
-                                      .collection('recentChats')
-                                      .doc(ref.otherUid)
-                                      .update({
-                                    'isAdminRead': true,
-                                    'adminMessageCount': 0
-                                  });
-                                  // }
-                                },
-                                child: ChatHistoryCardWidget(
-                                  isRead: ref.isUserRead,
-                                  messageCount: ref.adminMessageCount,
-                                  messgae: ref.message.toString(),
-                                  sender: ref.otherName.toString(),
-                                  time: ref.time,
-                                ),
-                              );
-                              // return Text(userController
-                              //     .userHistoryList[index].curentUid
-                              //     .toString());
-                            })),
-                      ),
+                Expanded(
+                  child: Obx(() => ListView.builder(
+                      scrollDirection: Axis.vertical,
+                      shrinkWrap: true,
+                      itemCount: userController.userHistoryList.length,
+                      itemBuilder: (context, index) {
+                        var ref = userController.userHistoryList[index];
+
+                        return userController.userHistoryList.isEmpty
+                            ? const Center(
+                                child: Text('Non hai alcuna cronologia chat.'))
+                            : userController.userHistoryList.isEmpty
+                                ? const CircularProgressIndicator()
+                                : GestureDetector(
+                                    onTap: () {
+                                      userController.UserId =
+                                          ref.userUid.toString();
+                                      proController.userProfileId =
+                                          ref.adminUid.toString();
+                                      userController.singleChatImage.value =
+                                          ref.photoUrl.toString();
+                                      // if (ref.isAdminRead == false) {
+                                      fireStore
+                                          .collection('recentChats')
+                                          .doc(ref.userUid)
+                                          .update({
+                                        'isAdminRead': true,
+                                        'adminMessageCount': 0
+                                      });
+                                      // }
+
+                                      Get.toNamed(Paths.adminInputChatView);
+                                    },
+                                    child: ChatHistoryCardWidget(
+                                      image: ref.photoUrl.toString(),
+                                      isRead: ref.isUserRead,
+                                      messageCount: ref.adminMessageCount,
+                                      messgae: ref.message.toString(),
+                                      sender: ref.userName.toString(),
+                                      time: ref.time,
+                                    ),
+                                  );
+                      })),
+                ),
               ], //  return ;
             ),
           )),

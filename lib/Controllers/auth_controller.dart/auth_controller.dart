@@ -1,12 +1,14 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:influencer/FirebaseServices/firebase_auth.dart';
 import 'package:influencer/Modals/user_body_modal.dart';
-import 'package:influencer/Modals/user_modal.dart';
+
 
 class AuthController extends GetxController {
+  String opzion1 = 'AUTO'.obs.toString();
+  String opzion2 = 'AUTO'.obs.toString();
+ 
+
   bool isLoading = false;
   AuthProvider authProvider = AuthProvider();
   UserModelBody user = UserModelBody();
@@ -18,7 +20,6 @@ class AuthController extends GetxController {
   late TextEditingController phoneController;
   late TextEditingController passwordController;
   late TextEditingController confirmController;
-  
 
   @override
   void onInit() {
@@ -30,7 +31,7 @@ class AuthController extends GetxController {
     phoneController = TextEditingController();
     passwordController = TextEditingController();
     confirmController = TextEditingController();
-    
+
     super.onInit();
   }
 
@@ -40,11 +41,14 @@ class AuthController extends GetxController {
     update();
 
     await authProvider.registerFireBaseUser(
-        email: emailController.text,
-        password: passwordController.text,
-        name: nameController.text,
-        phone: phoneController.text,
-        surname: surNameController.text);
+      email: emailController.text,
+      password: passwordController.text,
+      name: nameController.text,
+      phone: phoneController.text,
+      surname: surNameController.text,
+      opzione1: opzion1,
+      opzione2: opzion2,
+    );
 
     isLoading = false;
     update();
@@ -59,7 +63,7 @@ class AuthController extends GetxController {
       email: emailLoginController.text,
       password: passwordLoginController.text,
     );
-    log('user controller data ${data!.uid}');
+
     isLoading = false;
     update();
   }

@@ -3,15 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
 import 'package:influencer/admin_module/contactti/view/component/newchannel_appbar.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_input_view.dart';
 import 'package:influencer/routes/app_pages.dart';
+import 'package:influencer/routes/app_routes.dart';
 import 'package:influencer/util/color.dart';
 import 'package:influencer/util/commonText.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/string.dart';
+
+import '../../../../Firebase_notification/notification_services.dart';
 
 class AdminNewChannel extends StatefulWidget {
   @override
@@ -22,13 +26,13 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
   final aGroupController = Get.find<AdminGroupChatController>();
   final con = Get.find<CurrentUserController>();
   final fireStore = FirebaseFirestore.instance;
-  bool status = false;
-  bool status2 = false;
-  bool status3 = false;
-  bool status4 = false;
-  bool status5 = false;
-  bool status6 = false;
-  bool status7 = false;
+  late AppPages _appPages;
+  @override
+  void initState() {
+    _appPages = AppPages();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +42,7 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
           alignment: Alignment.bottomCenter,
           children: [
             ListView(
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 NewChannelAppBar(
                   ontap: () {
@@ -80,11 +84,11 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
                                       ),
                                     ),
                                     Switch(
-                                      value: status6,
+                                      value: aGroupController.tutti.value,
                                       activeColor: IColor.switch_btn_color,
                                       onChanged: (value) {
                                         setState(() {
-                                          status6 = value;
+                                          aGroupController.tutti.value = value;
                                         });
                                       },
                                     )
@@ -101,11 +105,12 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
                                       ),
                                     ),
                                     Switch(
-                                      value: status7,
+                                      value: aGroupController.consenti.value,
                                       activeColor: IColor.switch_btn_color,
                                       onChanged: (value) {
                                         setState(() {
-                                          status7 = value;
+                                          aGroupController.consenti.value =
+                                              value;
                                         });
                                       },
                                     )
@@ -133,30 +138,29 @@ class _AdminNewChannelState extends State<AdminNewChannel> {
                       onTap: () async {
                         await fireStore
                             .collection('groupChats')
-                            .doc(aGroupController.groupName).collection(aGroupController.groupMembers.toString()).doc()
-                            /*
-                            .collection(aGroupController.groupName)
-                            .doc(aGroupController.groupName +
-                                con.currentUser!.uid.toString())
-                          */
-                            .set(
-                              {
+                            .doc(aGroupController.groupName)
+                            .set({
+                          'groupPhoto': '',
+                          'AdminCount': 0,
                           'groupName': aGroupController.groupName,
-                          
-                          // 'GroupMembers': {
-                          //   for (int i = 0;
-                          //       i <= aGroupController.groupMembers.length;
-                          //       i++)
-                          //     {aGroupController.groupMembers[i]: '0'}
-                          // },
-                          'groupSetting': aGroupController.groupSetting,
+                          'GroupMembers':
+                              aGroupController.groupMembersStatusMap,
+                          'Tutti': aGroupController.tutti.value,
+                          'Consenti': aGroupController.consenti.value,
+                          'Muta': aGroupController.muta.value,
+                          'Nova': aGroupController.nova.value,
                           'lastMessage': '',
                           'time': Timestamp.now(),
+                          'groupCreatedTime': Timestamp.now(),
+                          'GroupDescription': '',
+                          'groupId': aGroupController.groupName,
+                          'isAdminArchived': false,
+                          'adminNotificationSattus': false,
+                          'usersNotificationSattus':
+                              aGroupController.notificationSattusMap
                         });
 
-                        Get.to(AdminInputGroupView());
-                        // Get.toNamed(Paths.twoWayChating);
-                        // AdminInputGroupView();
+                        Get.offNamed(Paths.adminInputGroupChatView);
                       },
                       child: Icon(
                         Icons.check,

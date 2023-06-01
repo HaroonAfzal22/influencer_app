@@ -13,10 +13,13 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:influencer/FirebaseMessage/single_chat_history_controller.dart';
 import 'package:influencer/FirebaseServices/firebase_methods.dart';
+import 'package:influencer/Firebase_notification/notification_services.dart';
 import 'package:influencer/admin_module/admin_archived/controller/admin_archived_controller.dart';
 import 'package:influencer/admin_module/admin_archived/view/component/googlemap.dart';
 import 'package:influencer/admin_module/admin_archived/view/widgets/audioCall.dart';
 import 'package:influencer/admin_module/bottom_nav/bottom_nav.dart';
+import 'package:influencer/admin_module/profile/profile_controller.dart';
+import 'package:influencer/admin_module/profile/user_profile_detail_view.dart';
 import 'package:influencer/admin_module/two_way_channel/view/home_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/admin_module/profile/profile.dart';
@@ -45,6 +48,7 @@ class _UserInputChatViewState extends State<UserInputChatView> {
   final TextEditingController _controller = TextEditingController();
   final currentUser = Get.find<CurrentUserController>();
   final messageController = Get.find<MessageController>();
+  final proController = Get.find<ProfileController>();
   final fireStore = FirebaseFirestore.instance;
 
   bool emojiShowing = false;
@@ -54,7 +58,8 @@ class _UserInputChatViewState extends State<UserInputChatView> {
   bool isMessages = false;
 
   bool isRecording = false;
-  late FireBaseOtherUser fireBaseOtherUser;
+  late FireBaseMethods fireBaseOtherUser;
+
   var otherUserRes;
   var _stream;
   bool isLoad = false;
@@ -63,9 +68,9 @@ class _UserInputChatViewState extends State<UserInputChatView> {
       isLoad = true;
     });
 
-    otherUserRes = await fireBaseOtherUser.otherUser(
-        otherUserId: messageController.otherUserId.toString(),
-        collection: 'users');
+    otherUserRes = await fireBaseOtherUser.getUserCollectData(
+        otherUserId: messageController.UserId.toString(), collection: 'users');
+    proController.userProfileId = messageController.UserId;
 
     setState(() {
       isLoad = false;
@@ -75,7 +80,7 @@ class _UserInputChatViewState extends State<UserInputChatView> {
   @override
   void initState() {
     super.initState();
-    fireBaseOtherUser = FireBaseOtherUser();
+    fireBaseOtherUser = FireBaseMethods();
     // getOtherUser();
     // _initialiseControllers();
     // initRecorder();
@@ -184,7 +189,7 @@ class _UserInputChatViewState extends State<UserInputChatView> {
                     ChatingAppBar(
                       avator: InkWell(
                           onTap: () {
-                            Get.to(Profile());
+                            Get.to(UserProfileDetailView());
                           },
                           child: CircleAvatar(
                             radius: Dimensions.fontSize12 * 2,
@@ -239,20 +244,20 @@ class _UserInputChatViewState extends State<UserInputChatView> {
                                     document.data() as Map<String, dynamic>;
 
                                 DateTime dateTime = data["time"].toDate();
+
                                 /*
                            final dateString =
                               DateFormat('yyyy-MM-dd hh:mm').format(dateTime);
                           */
                                 final dateString =
                                     DateFormat(' hh:mm:ss').format(dateTime);
-                                // devtools.log("Data time $dateString");
-                                return MessageBubble(
-                                  chatImageUrl: data['BannerImage'] ?? '',
-                                  myDate: dateString,
-                                  isME: data['email'] ==
+
+                                return ChatBubbleWidget(
+                                  name: data['name'] ?? ' name',
+                                  isMe: data['email'] ==
                                       currentUser.currentUser?.email,
-                                  userEmail: data['name'],
-                                  userText: data['text'] ?? '',
+                                  message: data['text'] ?? 'message',
+                                  time: dateString,
                                 );
                               }).toList(),
                             ),
@@ -421,8 +426,7 @@ class _UserInputChatViewState extends State<UserInputChatView> {
                                             .toString())
                                         .collection('userChat')
                                         .add({
-                                      'id': messageController.otherUserId
-                                          .toString(),
+                                      'id': messageController.UserId.toString(),
                                       'name': currentUser.currentUser!.name
                                           .toString(),
                                       'email': currentUser.currentUser!.email
@@ -434,13 +438,12 @@ class _UserInputChatViewState extends State<UserInputChatView> {
                                     // counter
                                     var messageCount = 1;
 
-                                    var recentChat =
-                                        await fireBaseOtherUser.otherUser(
+                                    var recentChat = await fireBaseOtherUser
+                                        .getUserCollectData(
                                             otherUserId: currentUser
                                                 .currentUser?.uid
                                                 .toString(),
                                             collection: 'recentChats');
-                                    log('this is chat message ${recentChat.data()['isAdminRead']}');
 
                                     ///////
 
@@ -454,28 +457,49 @@ class _UserInputChatViewState extends State<UserInputChatView> {
                                     }
 
                                     log('current user id ${currentUser.currentUser?.uid}');
-                                    //         .toString())
-                                    //recent chat of user
+
+                                    print(
+                                        'admin id ${messageController.adminUid}');
+                                    //----------------------
+
+                                    // get  user fcmToken
+                                    var getUserCollection =
+                                        await fireBaseOtherUser
+                                            .getUserCollectData(
+                                                otherUserId: messageController
+                                                    .adminUid
+                                                    .toString(),
+                                                collection: 'users');
+                                    var adminFcmToken = await getUserCollection
+                                        .data()['fcmToken'];
+                                    log('Admin fcm $adminFcmToken');
+
+                                    //----------------------
 
                                     fireStore
                                         .collection('recentChats')
                                         .doc(currentUser.currentUser?.uid
                                             .toString())
-                                        .set({
-                                      'curentUid': messageController.adminUserID
-                                          .toString(),
-                                      'otherUid': currentUser.currentUser?.uid
-                                          .toString(),
+                                        .update({
+                                      // 'adminUid': currentUser.currentUser?.uid
+                                      //     .toString(),
+                                      // 'userUid':
+                                      //     messageController.UserId.toString(),
                                       'adminMessageCount': messageCount,
                                       'isAdminRead': false,
                                       'lastMessage': _controller.text,
-                                      'otherName': currentUser.currentUser?.name
-                                          .toString(),
-                                      'photoUrl': 'photoUrl',
+                                      // 'userName': currentUser.currentUser?.name
+                                      //     .toString(),
+                                      // 'photoUrl': 'photoUrl',
                                       'userMessageCount': 0,
                                       'isUserRead': false,
                                       'time': Timestamp.now()
                                     });
+                                    LocalNotificationServices.sendNotification(
+                                        'nuovo messaggio',
+                                        _controller.text,
+                                        adminFcmToken ?? '');
+                                    log('messgae text ${_controller.text}');
 
                                     _controller.clear();
                                   }
@@ -967,6 +991,120 @@ class MessageBubble extends StatelessWidget {
     );
   }
 }
+
+/////---------------------------------------new masgae bubble
+class ChatBubbleWidget extends StatelessWidget {
+  ChatBubbleWidget({
+    required this.isMe,
+    required this.message,
+    required this.name,
+    required this.time,
+    Key? key,
+  }) : super(key: key);
+
+  bool isMe;
+  String name;
+  var time;
+  String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment:
+          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: Dimensions.padding8,
+        ),
+        Text(name),
+        //===========
+        Row(
+          mainAxisAlignment:
+              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Visibility(
+                visible: isMe ? false : true,
+                child: ImageAvatarWidget(
+                  isMe: isMe,
+                )),
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.70,
+              ),
+              padding: EdgeInsets.all(Dimensions.paddingLeft10),
+              margin: EdgeInsets.symmetric(vertical: Dimensions.paddingLeft10),
+              decoration: BoxDecoration(
+                color: isMe
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).canvasColor,
+                borderRadius: BorderRadius.circular(Dimensions.textsize15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                  ),
+                ],
+              ),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.80,
+                ),
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    color: isMe ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+            Visibility(
+                visible: isMe == true,
+                child: ImageAvatarWidget(
+                  isMe: isMe,
+                )),
+          ],
+        ),
+
+        Text(time)
+      ],
+    );
+  }
+}
+
+class ImageAvatarWidget extends StatelessWidget {
+  ImageAvatarWidget({
+    required this.isMe,
+    Key? key,
+  }) : super(key: key);
+  bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: isMe
+          ? const EdgeInsets.only(left: 5)
+          : const EdgeInsets.only(right: 5),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 22.r,
+        child: Image.asset(ImageConstant.dummyImage3),
+      ),
+    );
+  }
+}
+//////////////////////////////////////end of new message bubble
 /*
 import 'dart:developer' as devtools show log;
 import 'dart:developer';

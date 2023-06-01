@@ -7,23 +7,29 @@ import 'package:influencer/util/image_const.dart';
 
 class ContattiUserCard extends StatelessWidget {
   ContattiUserCard({
+    this.onLongPress,
     this.lastMessage,
     this.name,
     required this.onTap,
     this.color,
     Key? key,
+    this.isAdminTile,
   }) : super(key: key);
   bool unread = false;
   String? name;
   String? lastMessage;
   VoidCallback onTap;
+  VoidCallback? onLongPress;
   Color? color;
+  bool? isAdminTile = false;
   @override
   Widget build(BuildContext context) {
     double h = Get.size.height;
     double w = Get.size.width;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
+      
       child: Container(
         margin:
             EdgeInsets.symmetric(horizontal: w * 0.045, vertical: h * 0.014),
@@ -31,10 +37,7 @@ class ContattiUserCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(25),
           color: color ?? Colors.white,
         ),
-        // padding: EdgeInsets.symmetric(
-        //   horizontal: h*0.023,
-        //   vertical: h*0.015,
-        // ),
+     
         child: Row(
           children: <Widget>[
             Container(
@@ -105,6 +108,16 @@ class ContattiUserCard extends StatelessWidget {
                                 ),
                         ],
                       ),
+                      isAdminTile == true
+                          ? Text(
+                              'Amministratore Di Aruppo',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: Dimensions.fontSize14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : const Text('')
                     ],
                   ),
                 ],

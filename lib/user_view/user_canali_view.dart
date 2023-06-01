@@ -1,20 +1,28 @@
+import 'dart:developer';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:influencer/admin_module/admin_archived/view/component/search_bar.dart';
+import 'package:influencer/admin_module/btm_nav_profile/model/profiel_model.dart';
+import 'package:influencer/admin_module/two_way_channel/view/AdminGroupChat/user_group_input_view.dart';
 import 'package:influencer/admin_module/two_way_channel/view/component/card_layout.dart';
+import 'package:influencer/admin_module/two_way_channel/view/widgets/admin_group_chat_controller.dart';
 import 'package:influencer/routes/app_pages.dart';
 import 'package:influencer/util/color.dart';
 import 'package:influencer/util/commonText.dart';
 import 'package:influencer/util/dimension.dart';
 import 'package:influencer/util/image_const.dart';
 import 'package:influencer/util/string.dart';
-
-import '../admin_module/two_way_channel/model/two_way_modelclass.dart';
+import 'package:intl/intl.dart';
 import '../admin_module/two_way_channel/view/home_controller.dart';
+import '../admin_module/two_way_channel/view/widgets/group_list_card_widget.dart';
 
 class UserCanaliView extends StatelessWidget {
   final con = Get.find<CurrentUserController>();
+  final aGroupController = Get.find<AdminGroupChatController>();
+  final _fireStore = FirebaseFirestore.instance;
+  int userMessageCount = 0;
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -82,46 +90,116 @@ class UserCanaliView extends StatelessWidget {
           ),
           backgroundColor: IColor.colorWhite,
           body: SafeArea(
-            child: ListView(
-              physics: const NeverScrollableScrollPhysics(),
+            child: Column(
               children: [
                 search_bar(title: Strings.archived_privatd_chating_searchbar),
-                SingleChildScrollView(
-                  child: Column(
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.fontSize20,
+                      vertical: Dimensions.fontSize12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: Dimensions.fontSize20,
-                            vertical: Dimensions.fontSize12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CommonText(
-                                title: Strings.canali,
-                                fontWeight: FontWeight.w500),
-                            CommonText(
-                              title: Strings.vedi_tutto,
-                              color: IColor.grey_color,
-                            )
-                          ],
-                        ),
-                      ),
-                      Container(
-                        // margin: EdgeInsets.only(bottom: 60.h),
-                        height: Get.size.height,
-                        child: ListView.builder(
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: TwoWayChats.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final TwoWayMessage chat = TwoWayChats[index];
-                            return TwoWayUserChannelCard(
-                              chat: chat,
-                            );
-                          },
-                        ),
+                      CommonText(
+                          title: Strings.canali, fontWeight: FontWeight.w500),
+                      CommonText(
+                        title: Strings.vedi_tutto,
+                        color: IColor.grey_color,
                       ),
                     ],
                   ),
+                ),
+                // Stream builder
+
+                StreamBuilder(
+                  stream: _fireStore
+                      .collection('groupChats')
+                      .orderBy('time', descending: true)
+                      .snapshots(),
+                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                    if (snapshot.hasData) {
+                      return snapshot.data!.docs.isEmpty
+                          ? const Text('Non partecipi a nessun canale')
+                          : Expanded(
+                              child: ListView(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 15),
+                                shrinkWrap: true,
+                                scrollDirection: Axis.vertical,
+                                children: snapshot.data!.docs
+                                    .map((DocumentSnapshot document) {
+                                  Map<String, dynamic> data =
+                                      document.data() as Map<String, dynamic>;
+
+                                  DateTime dateTime = data["time"].toDate();
+                                  final dateString =
+                                      DateFormat('yyyy-MM-dd hh:mm')
+                                          .format(dateTime);
+                                  // check if currentuser added in group
+                                  bool isUserAdded = false;
+
+                                  if (data['GroupMembers']
+                                      .containsKey(con.currentUser?.uid)) {
+                                    isUserAdded = true;
+                                  }
+                                  // geting user count from collection map
+
+                                  Map mp = data['GroupMembers'];
+
+                                  mp.forEach((key, value) {
+                                    if (key == con.currentUser?.uid) {
+                                      userMessageCount = value;
+                                    }
+                                  });
+
+                                  return isUserAdded == true
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            aGroupController.adminCount =
+                                                data['AdminCount'];
+                                            aGroupController
+                                                    .groupMembersStatusMap =
+                                                data['GroupMembers'];
+
+                                            aGroupController.groupName =
+                                                data['groupName'];
+                                            aGroupController
+                                                    .groupMembersStatusMap[
+                                                con.currentUser?.uid
+                                                    .toString()] = 0;
+
+                                            _fireStore
+                                                .collection('groupChats')
+                                                .doc(aGroupController.groupName)
+                                                .update({
+                                              'GroupMembers': aGroupController
+                                                  .groupMembersStatusMap
+                                            });
+
+                                            Get.to(UserInputGroupView());
+                                          },
+                                          child: GroupListCardWidget(
+                                            imageUrl: ImageConstant.dummyImage1
+                                                .toString(), //data['groupPhoto']
+                                            chatNumber: userMessageCount,
+                                            groupName: data['groupName'],
+                                            time: dateString,
+                                            message: data['lastMessage'] == ''
+                                                ? 'Write a message'
+                                                : data['lastMessage'],
+                                          ),
+                                        )
+                                      : Container();
+                                }).toList(),
+                              ),
+                            );
+                    }
+                    if (snapshot.hasError) {
+                      return const Text('Something went wrong');
+                    }
+
+                    return const Text("Loading");
+                  },
                 )
               ],
             ),

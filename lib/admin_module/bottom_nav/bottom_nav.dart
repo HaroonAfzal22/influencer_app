@@ -9,7 +9,6 @@ import 'package:influencer/admin_module/two_way_channel/view/two_way_admin_chann
 import 'package:influencer/user_view/user_canali_view.dart';
 import 'package:influencer/user_view/user_chat_history_view.dart';
 
-
 class BottomNavigationBarPage extends StatefulWidget {
   int? uid;
   BottomNavigationBarPage({this.uid});
@@ -33,14 +32,18 @@ class _BottomNavigationBarPageState extends State<BottomNavigationBarPage> {
     // TwoWayUserChannel(),
     UserChatView(),
     UserCanaliView(),
-    const MobileContact(),
+    const MobileContact(
+      isArrowIcon: false,
+    ),
     Profile(),
   ];
 
   static List<Widget> adminViews = <Widget>[
     TwoWayUserChannel(),
     AdminCanaliView(),
-    const MobileContact(),
+    const MobileContact(
+      isArrowIcon: false,
+    ),
 
     // ContactList(),
     //  const MobileContact(),

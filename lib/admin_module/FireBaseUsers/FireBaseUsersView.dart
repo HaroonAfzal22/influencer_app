@@ -26,18 +26,10 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
   TextEditingController messageController = TextEditingController();
   final aGroupController = Get.put(AdminGroupChatController());
 
-  List<int> _selectedIndices = [];
-
   final currentUser = Get.find<CurrentUserController>();
   Color activeColor = Colors.pink.shade100;
   Color inActiveColor = Colors.white;
   dynamic tileColor = Colors.white;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,36 +68,29 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                         ? const SizedBox()
                         : ContattiUserCard(
                             onTap: () {
-                              if (_selectedIndices.contains(index)) {
-                                _selectedIndices.remove(index);
-                                /*
-                                aGroupController.groupMembers.remove(controller
-                                    .firbaseUsersList[index].uid
-                                    .toString());
-                            */
+                              if (controller.selectedIndices.contains(index)) {
+                                controller.selectedIndices.remove(index);
 
                                 aGroupController.groupMembersStatusMap.remove(
                                     controller.firbaseUsersList[index].uid
                                         .toString());
-                                log(aGroupController.groupMembersStatusMap
-                                    .toString());
+                                aGroupController.notificationSattusMap.remove(
+                                    controller.firbaseUsersList[index].uid
+                                        .toString());
                               } else {
-                                _selectedIndices.add(index);
-                                /*
-                                aGroupController.groupMembers.add(controller
-                                    .firbaseUsersList[index].uid
-                                    .toString());
-                              */
+                                controller.selectedIndices.add(index);
+
                                 aGroupController.groupMembersStatusMap[
                                     controller.firbaseUsersList[index].uid
                                         .toString()] = 0;
-                                log(aGroupController.groupMembersStatusMap
-                                    .toString());
-                              }
 
+                                aGroupController.notificationSattusMap[
+                                    controller.firbaseUsersList[index].uid
+                                        .toString()] = true;
+                              }
                               setState(() {});
                             },
-                            color: _selectedIndices.contains(index)
+                            color: controller.selectedIndices.contains(index)
                                 ? activeColor
                                 : inActiveColor,
                             name: controller.firbaseUsersList[index].name,
@@ -123,86 +108,37 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                     radius: h * 0.035,
                     child: InkWell(
                         onTap: () {
-                          print('working');
-                          if (_selectedIndices.isNotEmpty) {
-                            /*
-                            if (aGroupController
-                                .groupMembersStatus.isNotEmpty) {
-                              aGroupController.groupMembersStatus.clear();
-
-                              for (int i = 0;
-                                  i < aGroupController.groupMembers.length;
-                                  i++) {
-                                if (aGroupController
-                                    .groupMembersStatus.isNotEmpty) {
-                                  aGroupController.groupMembersStatus[
-                                      aGroupController.groupMembers[i]] = false;
-                                }
-                                aGroupController.groupMembersStatus[
-                                    aGroupController.groupMembers[i]] = false;
-                              }
-                              log('if printing');
-                            } else {
-                              for (int i = 0;
-                                  i < aGroupController.groupMembers.length;
-                                  i++) {
-                                if (aGroupController
-                                    .groupMembersStatus.isNotEmpty) {
-                                  aGroupController.groupMembersStatus[
-                                      aGroupController.groupMembers[i]] = false;
-                                }
-                                aGroupController.groupMembersStatus[
-                                    aGroupController.groupMembers[i]] = false;
-                              }
-                            }
-                       */
-
-                            log(aGroupController.groupMembersStatusMap
-                                .toString());
-
-                            // var result = {
-                            //   for (var v in aGroupController.groupMembers)
-                            //     v[0]: v[1]
-                            // };
-                            // Map m = Map();
-                            // for (int i = 0;
-                            //     i < aGroupController.groupMembers.length;
-                            //     i++) {
-                            //   m.addAll( aGroupController.groupMembers[i])
-                            // }
-                            // log(m.toString());
-
-                            /*
+                          if (controller.selectedIndices.isNotEmpty) {
                             showDialog(
                                 context: context,
                                 builder: (context) {
                                   return AlertDialog(
                                     title: const Text(
-                                      Strings.groupName,
+                                      'Scrivi il nome del gruppo',
                                       textAlign: TextAlign.center,
                                     ),
                                     content: TextField(
                                       maxLength: 25,
                                       decoration: const InputDecoration(
                                           hintText:
-                                              'enter group name here ...'),
+                                              'inserisci qui il nome del gruppo ...'),
                                       controller: messageController,
                                     ),
                                     actions: [
                                       SmallElevatedButton(
-                                        text: 'Cancel',
+                                        text: 'Annulla',
                                         color: Colors.pinkAccent,
                                         onTap: () {
                                           Get.back();
                                         },
                                       ),
                                       SmallElevatedButton(
-                                        text: '  Create ',
+                                        text: '  Creare ',
                                         color: Colors.blueAccent,
                                         onTap: () {
                                           if (messageController.text.isEmpty) {
-                                            Get.snackbar('Error',
-                                                'Please enter group name',
+                                            Get.snackbar('Errore',
+                                                'Inserisci il nome del gruppo',
                                                 snackPosition:
                                                     SnackPosition.BOTTOM,
                                                 margin:
@@ -211,16 +147,16 @@ class _FireBaseUsersViewState extends State<FireBaseUsersView> {
                                           } else {
                                             aGroupController.groupName =
                                                 messageController.text;
-                                            Get.toNamed(Paths.adminNewChannel);
+                                            Get.offNamed(Paths.adminNewChannel);
                                           }
                                         },
                                       )
                                     ],
                                   );
                                 });
-                    */
-                          } else if (_selectedIndices.isEmpty) {
-                            Get.snackbar('Error', 'Please select user for chat',
+                          } else if (controller.selectedIndices.isEmpty) {
+                            Get.snackbar(
+                                'Errore', "Seleziona l'utente per la chat",
                                 snackPosition: SnackPosition.BOTTOM,
                                 margin:
                                     const EdgeInsets.symmetric(vertical: 20));

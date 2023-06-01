@@ -6,14 +6,16 @@ final userContacts =
 
 abstract class FirebaseMethods {
   // add user data
-  static Future<void> addUserCollection({
-    uid,
-    name,
-    sureName,
-    email,
-    phone,
-    password,
-  }) {
+  static Future<void> addUserCollection(
+      {uid,
+      name,
+      sureName,
+      email,
+      phone,
+      password,
+      opzione1,
+      opzione2,
+      fcmToken}) {
     return firebaseInstance
         .collection('users')
         .doc(uid)
@@ -28,8 +30,29 @@ abstract class FirebaseMethods {
           'userRole': 'user',
           'status': 'offline',
           'lastSeen': '',
-          'homeview':'false',
-          'time': Timestamp.now()
+          'homeview': 'false',
+          'time': Timestamp.now(),
+
+          //  opzion
+
+          'opzione1': opzione1,
+
+          'opzione2': opzione2,
+          // acount setting
+
+          'Sono': '',
+          'DateOfBirth': '',
+          'Interssi': '',
+          'Location': '',
+          'Messaggi': false,
+          'Messagg0': false,
+          'RMessaggi': false,
+          'Annunci': false,
+          'AttivitaAccount': false,
+          'RAvvivitaAccount': false,
+
+          // Notifications
+          'fcmToken': fcmToken ?? ''
         })
         .then((value) => print("User Added"))
         .catchError((error) => print("Failed to add user: $error"));

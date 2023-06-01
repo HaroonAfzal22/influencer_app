@@ -4,8 +4,13 @@ import 'package:influencer/FirebaseMessage/single_chat_history_modal.dart';
 import 'dart:developer' as devtools show log;
 
 class MessageController extends GetxController {
-  String otherUserId = '';
-  String adminUserID = '';
+  String UserId = ''.obs.toString();
+  String adminUid = ''.obs.toString();
+  Rx<String> singleChatImage = Rx('');
+  Rx<Map> audiomap = Rx({});
+  Rx<List<dynamic>> activeAudioMap = Rx([]);
+
+  Rx<List<Map>> audioListMAp = Rx([{}]);
 
   RxList<SingleChatHistoryModal> userHistoryList =
       RxList(<SingleChatHistoryModal>[]);
@@ -30,6 +35,7 @@ class MessageController extends GetxController {
         .collection('recentChats')
         .orderBy('time', descending: true)
         .snapshots();
+
     userHistoryList.bindStream(getAllRegisterUsers());
   }
 }

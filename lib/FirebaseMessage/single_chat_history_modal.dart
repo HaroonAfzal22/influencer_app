@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class SingleChatHistoryModal {
   String? docId;
-  String? curentUid;
-  String? otherUid;
-  String? otherName = '';
+  String? adminUid;
+  String? userUid;
+  String? userName = '';
   String? photoUrl = '';
   String? message = '';
   int? adminMessageCount = 0;
@@ -16,7 +15,7 @@ class SingleChatHistoryModal {
 
   SingleChatHistoryModal(
       {this.docId,
-      this.otherName,
+      this.userName,
       this.photoUrl,
       this.time,
       this.message,
@@ -28,15 +27,15 @@ class SingleChatHistoryModal {
 
     final dateString = DateFormat('hh:mm:ss').format(dateTime);
     // docId = data.id;
-    otherUid = data['otherUid'];
-    curentUid = data['curentUid'];
+    userUid = data['userUid'];
+    adminUid = data['adminUid'];
     photoUrl = data['photoUrl'];
     adminMessageCount = data['adminMessageCount'];
     userMessageCount = data['userMessageCount'];
     message = data['lastMessage'];
     isUserRead = data['isUserRead'];
     isAdminRead = data['isAdminRead'];
-    otherName = data['otherName'];
+    userName = data['userName'];
     time = dateString;
   }
 }

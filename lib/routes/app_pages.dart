@@ -36,6 +36,8 @@ abstract class Routes {
   static const userSideContactList = Paths.userSideContactList;
   static const userSideTwoWayUserChannel = Paths.userSideTwoWayUserChannel;
   static const profile = Paths.profile;
+  static const adminInputGroupChatView = Paths.adminInputGroupChatView;
+  static const fireBaseUsersView = Paths.fireBaseUsersView;
 }
 
 abstract class Paths {
@@ -83,4 +85,5 @@ abstract class Paths {
   static const userInputChatView = '/userInputChatView';
   static const adminSingleChatUserListView = '/adminSingleChatUserListView';
   static const adminInputChatView = '/adminInputChatView';
+  static const adminInputGroupChatView = '/adminInputGroupChatView';
 }
